@@ -18,7 +18,11 @@ export const metadata: Metadata = {
     "Diagnóstico de los servidores MCP y plugins de Cursor: qué funciona, qué falta y cómo repararlo.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html
       lang="es"
