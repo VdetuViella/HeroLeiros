@@ -6,17 +6,9 @@
         "CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"
       }
     },
-    "cloudflare-docs": {
-      "url": "https://docs.mcp.cloudflare.com/mcp"
-    },
-    "cloudflare-bindings": {
-      "url": "https://bindings.mcp.cloudflare.com/mcp"
-    },
-    "cloudflare-builds": {
-      "url": "https://builds.mcp.cloudflare.com/mcp"
-    },
-    "cloudflare-observability": {
-      "url": "https://observability.mcp.cloudflare.com/mcp"
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
     }
   }
 }

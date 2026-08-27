@@ -1,31 +1,85 @@
-# MCP y plugins
+# Cursor local — Context7 + Playwright
 
-Panel de diagnóstico de las integraciones de Cursor conectadas a este proyecto, más la configuración que repara las que fallan.
+Configuración para **Cursor Desktop en tu máquina**, no para Cloud Agents.
 
-## Qué se encontró
+## 1. Context7
 
-| Integración | Estado | Notas |
-| --- | --- | --- |
-| GitHub, Gmail, Google Calendar, Google Drive, Granola, Notion, Apify, Playwright | Operativo | Autenticación y llamadas de prueba correctas |
-| Context7 | Clave válida (REST) | Reverificado: Bearer en `/api/v2/libs/search` → 200 y React `/reactjs/react.dev`. No hace falta crear otra clave. El MCP de este chat puede seguir anónimo (`Monthly quota exceeded`) hasta nueva sesión/agente con el secreto `CONTEXT7_API_KEY` |
-| MCP de Cloudflare (docs, bindings, builds, observability) | No conectados | El plugin `cloudflare` solo carga skills; `plugin.json` no declara `mcpServers` |
+Necesitas la variable de entorno `CONTEXT7_API_KEY` (empieza por `ctx7sk`).
 
-## Qué se ha dejado en el repo
+**macOS / Linux** — en `~/.zshrc` o `~/.bashrc`:
 
-- `.cursor/mcp.json` configura Context7 con `CONTEXT7_API_KEY` y los cuatro MCP de Cloudflare.
-- Este panel documenta cada prueba y los pasos pendientes.
+```bash
+export CONTEXT7_API_KEY="ctx7sk-…"
+```
 
-## Cómo completar la reparación
+Cierra Cursor por completo y ábrelo de nuevo (mejor desde una terminal ya con la variable, o reinicia sesión gráfica si Cursor no hereda el shell).
 
-1. `CONTEXT7_API_KEY` ya está en `.env` (gitignored) y es válida por REST. Si el MCP del chat sigue en cuota anónima, no regeneres la clave: arranca un agente nuevo o recarga MCP para que herede el secreto del entorno.
-2. En Cursor Desktop, abre **Customize → MCP** y autentica los servidores Cloudflare con OAuth (opcional; el usuario puede omitirlo).
-3. Recarga los MCP. Los namespaces `cloudflare-*` deberían aparecer tras OAuth.
+**Windows** — Variables de entorno del sistema → nueva variable de usuario `CONTEXT7_API_KEY`.
 
-## Cómo ejecutar el panel
+Comprueba:
+
+```bash
+echo $CONTEXT7_API_KEY   # macOS/Linux
+```
+
+## 2. Playwright
+
+Requisitos: Node.js 18+ y `npx` en el PATH.
+
+La primera vez instala Chromium:
+
+```bash
+npx playwright install chromium
+```
+
+## 3. Dónde poner el `mcp.json`
+
+Este repo ya incluye `.cursor/mcp.json` con Context7 y Playwright. Si abres **esta carpeta** en Cursor Desktop, debería bastar.
+
+Para tenerlos en **todos** los proyectos, copia el mismo contenido a:
+
+- macOS/Linux: `~/.cursor/mcp.json`
+- Windows: `%USERPROFILE%\.cursor\mcp.json`
+
+Contenido:
+
+```json
+{
+  "mcpServers": {
+    "context7": {
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+## 4. Activar en Cursor Desktop
+
+1. **Customize → MCP** (o Settings → Tools & MCP).
+2. Comprueba que `context7` y `playwright` aparecen en verde.
+3. Si Context7 sigue en cuota anónima, Cursor no está leyendo `CONTEXT7_API_KEY`: revisa el paso 1 y reinicia Cursor.
+4. Logs: Output → **MCP Logs**.
+
+## 5. Qué no hace falta
+
+| Cosa | Notas |
+| --- | --- |
+| Cloud Agent / Save environment | Era de la VM en la nube; ignóralo para trabajo local |
+| Plugin Playwright del marketplace | Opcional; este `mcp.json` ya lanza `@playwright/mcp` |
+| Navegador “de fábrica” de Cloud Agents | Solo en la nube (`computerUse`). En local usas Playwright MCP |
+
+## Panel opcional de este repo
 
 ```bash
 npm ci
 npm run dev
 ```
 
-El servidor queda en [http://127.0.0.1:43147](http://127.0.0.1:43147).
+Abre http://127.0.0.1:43147 — es solo un resumen; **no configura tu Cursor local**.
