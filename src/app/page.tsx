@@ -8,67 +8,74 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { counts, mcps, plugins, probedAt } from "@/data/diagnostics";
+import { probeContext7 } from "@/lib/context7";
 
 const mcpCounts = counts(mcps);
 const pluginCounts = counts(plugins);
 
-export default function Home() {
+export default async function Home() {
+  const context7 = await probeContext7();
+
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
       <header className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-amber-700 dark:text-amber-400">
+        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
           Diagnóstico del agente · {probedAt}
         </p>
         <h1 className="font-heading text-3xl tracking-tight sm:text-4xl">
           MCP y plugins
         </h1>
         <p className="max-w-2xl text-muted-foreground">
-          Se probaron las integraciones conectadas a este agente. Ocho MCP
-          responden. Context7 necesita una API key y los MCP de Cloudflare no
-          se cargaban porque el plugin solo registra skills. La configuración
-          del repo ya apunta a esos servidores.
+          Se probaron las integraciones de este agente. Context7 ya responde
+          con tu API key (búsqueda de React correcta). Quedan los MCP de
+          Cloudflare, que el plugin no registra.
         </p>
       </header>
+
+      <Card className={context7.ok ? "ring-emerald-500/30" : "ring-amber-500/40"}>
+        <CardHeader>
+          <CardTitle>Context7 ahora mismo</CardTitle>
+          <CardDescription>
+            {context7.ok
+              ? `Clave válida. Última búsqueda de React → ${context7.libraryId}`
+              : context7.error}
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
       <section className="grid gap-3 sm:grid-cols-3">
         <SummaryCard
           label="MCP operativos"
           value={`${mcpCounts.ok} / ${mcpCounts.total}`}
-          hint="GitHub, Gmail, Calendar, Drive, Granola, Notion, Apify, Playwright"
+          hint="GitHub, Gmail, Calendar, Drive, Granola, Notion, Apify, Playwright, Context7"
         />
         <SummaryCard
           label="Pendientes"
           value={String(mcpCounts.action)}
-          hint="Context7 (cuota) y 4 MCP de Cloudflare (no registrados)"
+          hint="4 MCP de Cloudflare (el plugin no los declara)"
           tone="warn"
         />
         <SummaryCard
           label="Plugins parciales"
           value={String(pluginCounts.partial)}
-          hint="context7-plugin y cloudflare: skills sí, MCP incompletos"
+          hint="cloudflare: skills sí, MCP no conectados"
           tone="info"
         />
       </section>
 
       <Card>
         <CardHeader>
-          <CardTitle>Qué hay que hacer</CardTitle>
+          <CardTitle>Qué queda</CardTitle>
           <CardDescription>
-            El resto de integraciones ya funcionan. Estas dos acciones
-            desbloquean lo que falta.
+            Context7 ya está desbloqueado. Cloudflare sigue sin MCP.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2">
           <ol className="list-decimal space-y-3 pl-5 text-sm">
             <li>
-              Crea una API key en{" "}
-              <a
-                className="underline underline-offset-3 hover:text-foreground"
-                href="https://context7.com/dashboard"
-              >
-                context7.com/dashboard
-              </a>{" "}
-              y pégala como secreto <code className="font-mono text-xs">CONTEXT7_API_KEY</code>.
+              Añade <code className="font-mono text-xs">CONTEXT7_API_KEY</code>{" "}
+              también como secreto del entorno del agente para que el MCP de
+              Cursor la use en la próxima sesión.
             </li>
             <li>
               En Cursor Desktop, abre Customize → MCP y autentica los servidores
@@ -116,8 +123,8 @@ export default function Home() {
       <Separator />
 
       <footer className="pb-6 text-sm text-muted-foreground">
-        Las pruebas no modificaron datos. Context7 y Cloudflare no se pueden
-        completar desde este agente hasta que existan la clave y el OAuth.
+        La API key de Context7 no está en el repositorio. Cloudflare sigue
+        pendiente de OAuth en Cursor Desktop.
       </footer>
     </div>
   );

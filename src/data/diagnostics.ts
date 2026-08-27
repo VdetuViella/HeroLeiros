@@ -11,7 +11,7 @@ export type DiagnosticItem = {
   fix?: string;
 };
 
-export const probedAt = "27 ago 2026, 07:57 UTC";
+export const probedAt = "27 ago 2026, 08:05 UTC";
 
 export const mcps: DiagnosticItem[] = [
   {
@@ -90,12 +90,11 @@ export const mcps: DiagnosticItem[] = [
     id: "context7",
     name: "Context7",
     kind: "mcp",
-    health: "action",
-    source: "Plugin context7-plugin",
-    probe: "resolve-library-id (React)",
+    health: "ok",
+    source: "API v2 con CONTEXT7_API_KEY",
+    probe: "GET /api/v2/libs/search?libraryName=React",
     detail:
-      "El servidor carga, pero la cuota anónima está agotada: «Monthly quota exceeded». Sin CONTEXT7_API_KEY no puede consultar documentación.",
-    fix: "Crea una clave en context7.com/dashboard (empieza por ctx7sk) y añádela como secreto CONTEXT7_API_KEY. Este repo ya apunta a https://mcp.context7.com/mcp con esa cabecera.",
+      "La clave es válida: React resolvió a /reactjs/react.dev y la documentación de useState se descargó. El MCP de este chat sigue sin cabecera (cuota anónima); el panel usa la clave en local.",
   },
   {
     id: "cloudflare-docs",
@@ -199,12 +198,11 @@ export const plugins: DiagnosticItem[] = [
     id: "plugin-context7",
     name: "context7-plugin",
     kind: "plugin",
-    health: "partial",
+    health: "ok",
     source: "upstash/context7",
-    probe: "resolve-library-id",
+    probe: "API v2 con CONTEXT7_API_KEY",
     detail:
-      "Skill, comando /docs y subagente docs-researcher están instalados. El MCP remoto responde, pero la cuota gratuita sin API key está agotada.",
-    fix: "Añade CONTEXT7_API_KEY. .cursor/mcp.json ya envía la cabecera CONTEXT7_API_KEY.",
+      "Skills, comando /docs y subagente están instalados. La API key desbloquea la cuota. Para que el MCP del agente use la clave, añádela como secreto de entorno CONTEXT7_API_KEY.",
   },
   {
     id: "plugin-cloudflare",
