@@ -73,9 +73,10 @@ export default async function Home() {
         <CardContent className="grid gap-6 sm:grid-cols-2">
           <ol className="list-decimal space-y-3 pl-5 text-sm">
             <li>
-              Añade <code className="font-mono text-xs">CONTEXT7_API_KEY</code>{" "}
-              también como secreto del entorno del agente para que el MCP de
-              Cursor la use en la próxima sesión.
+              La clave de Context7 ya es válida por REST. Si el MCP del chat
+              sigue en cuota anónima, no crees otra: usa un agente nuevo (o
+              recarga MCP) con el secreto{" "}
+              <code className="font-mono text-xs">CONTEXT7_API_KEY</code>.
             </li>
             <li>
               En Cursor Desktop, abre Customize → MCP y autentica los servidores

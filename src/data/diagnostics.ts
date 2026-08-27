@@ -11,7 +11,7 @@ export type DiagnosticItem = {
   fix?: string;
 };
 
-export const probedAt = "27 ago 2026, 08:05 UTC";
+export const probedAt = "27 ago 2026, 08:12 UTC";
 
 export const mcps: DiagnosticItem[] = [
   {
@@ -94,7 +94,7 @@ export const mcps: DiagnosticItem[] = [
     source: "API v2 con CONTEXT7_API_KEY",
     probe: "GET /api/v2/libs/search?libraryName=React",
     detail:
-      "La clave es válida: React resolvió a /reactjs/react.dev y la documentación de useState se descargó. El MCP de este chat sigue sin cabecera (cuota anónima); el panel usa la clave en local.",
+      "Reverificado 08:12 UTC: Bearer CONTEXT7_API_KEY → HTTP 200, React → /reactjs/react.dev. No crear otra clave. El MCP resolve-library-id de este chat sigue anónimo (Monthly quota exceeded) hasta nueva sesión/agente con el secreto.",
   },
   {
     id: "cloudflare-docs",
@@ -202,7 +202,7 @@ export const plugins: DiagnosticItem[] = [
     source: "upstash/context7",
     probe: "API v2 con CONTEXT7_API_KEY",
     detail:
-      "Skills, comando /docs y subagente están instalados. La API key desbloquea la cuota. Para que el MCP del agente use la clave, añádela como secreto de entorno CONTEXT7_API_KEY.",
+      "Skills, comando /docs y subagente instalados. La clave en .env es válida por REST; no regenerar. El MCP del chat solo usará la clave en una sesión nueva con secreto CONTEXT7_API_KEY.",
   },
   {
     id: "plugin-cloudflare",

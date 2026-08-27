@@ -7,7 +7,7 @@ Panel de diagnóstico de las integraciones de Cursor conectadas a este proyecto,
 | Integración | Estado | Notas |
 | --- | --- | --- |
 | GitHub, Gmail, Google Calendar, Google Drive, Granola, Notion, Apify, Playwright | Operativo | Autenticación y llamadas de prueba correctas |
-| Context7 | Operativo con API key | Sin clave, el MCP anónimo responde `Monthly quota exceeded`. Con `CONTEXT7_API_KEY` la API v2 resuelve React a `/reactjs/react.dev` |
+| Context7 | Clave válida (REST) | Reverificado: Bearer en `/api/v2/libs/search` → 200 y React `/reactjs/react.dev`. No hace falta crear otra clave. El MCP de este chat puede seguir anónimo (`Monthly quota exceeded`) hasta nueva sesión/agente con el secreto `CONTEXT7_API_KEY` |
 | MCP de Cloudflare (docs, bindings, builds, observability) | No conectados | El plugin `cloudflare` solo carga skills; `plugin.json` no declara `mcpServers` |
 
 ## Qué se ha dejado en el repo
@@ -17,9 +17,9 @@ Panel de diagnóstico de las integraciones de Cursor conectadas a este proyecto,
 
 ## Cómo completar la reparación
 
-1. Define `CONTEXT7_API_KEY` en `.env` (local) y como secreto del entorno del agente. No la subas al repo.
-2. En Cursor Desktop, abre **Customize → MCP** y autentica los servidores Cloudflare con OAuth.
-3. Recarga los MCP. Los namespaces `cloudflare-*` deberían aparecer. Context7 usará la clave en la próxima sesión del agente.
+1. `CONTEXT7_API_KEY` ya está en `.env` (gitignored) y es válida por REST. Si el MCP del chat sigue en cuota anónima, no regeneres la clave: arranca un agente nuevo o recarga MCP para que herede el secreto del entorno.
+2. En Cursor Desktop, abre **Customize → MCP** y autentica los servidores Cloudflare con OAuth (opcional; el usuario puede omitirlo).
+3. Recarga los MCP. Los namespaces `cloudflare-*` deberían aparecer tras OAuth.
 
 ## Cómo ejecutar el panel
 
