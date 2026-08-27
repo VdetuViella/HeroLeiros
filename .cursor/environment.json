@@ -1,0 +1,17 @@
+{
+  "name": "MCP y plugins",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "dashboard",
+      "command": "npm run dev",
+      "description": "Panel de diagnóstico de MCP y plugins en http://127.0.0.1:43147"
+    }
+  ],
+  "ports": [
+    {
+      "name": "dashboard",
+      "port": 43147
+    }
+  ]
+}
