@@ -13,7 +13,7 @@ import { defaultKeymap, keyLabel } from "@/lib/input/keymap";
 import { MicInputSource } from "@/lib/input/microphone";
 import { TouchInputSource } from "@/lib/input/touch";
 import { MicInput, toMicError } from "@/lib/mic/mic-input";
-import { detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
+import { classifierFor, detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
 import { GameSession } from "@/lib/session/game-session";
 import {
   defaultPracticeSettings,
@@ -23,7 +23,7 @@ import {
 } from "@/lib/session/practice";
 import { loadKeymap, loadLatencyMs, readLocal, saveKeymap, writeLocal } from "@/lib/settings/local";
 
-import { GameView } from "./game-view";
+import { GameView, type GameMic } from "./game-view";
 import type { MixState } from "./mixer-panel";
 import { ResultsView } from "./results-view";
 import { SetupPanel } from "./setup-panel";
@@ -43,12 +43,12 @@ interface Running {
   session: GameSession;
   touch: TouchInputSource;
   keyLabels: string[];
-  mic: MicInput | null;
+  mic: GameMic | null;
 }
 
 function releaseRunning(running: Running | null): Promise<void> {
   if (!running) return Promise.resolve();
-  return running.session.discard().finally(() => running.mic?.close());
+  return running.session.discard().finally(() => running.mic?.input.close());
 }
 
 export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
@@ -181,6 +181,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
 
       const clock = (performanceTime: number) => engine.heardTime(performanceTime);
       const touch = new TouchInputSource(clock);
+      const classifier = mic ? classifierFor(micPrefs, track.instrument, track.lanes) : null;
       const session = new GameSession(engine, {
         chart,
         instrument: settings.instrument,
@@ -189,10 +190,15 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         guide: settings.guide,
         hitSounds: useMic ? false : settings.hitSounds,
         latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil"), microfono: loadLatencyMs("microfono") },
-        inputs: mic ? [new MicInputSource(mic, engine)] : [new KeyboardInputSource(keymap, clock), touch],
+        inputs: mic ? [new MicInputSource(mic, engine, { classifier })] : [new KeyboardInputSource(keymap, clock), touch],
         onFinish: handleFinish,
       });
-      const next: Running = { session, touch, keyLabels: mic ? keymap.map(() => "") : keymap.map(keyLabel), mic };
+      const next: Running = {
+        session,
+        touch,
+        keyLabels: mic ? keymap.map(() => "") : keymap.map(keyLabel),
+        mic: mic ? { input: mic, classifies: classifier !== null } : null,
+      };
       runningRef.current = next;
       setRunning(next);
       setResult(null);
@@ -204,7 +210,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       setError("No se pudo preparar el audio. Recarga la página e inténtalo de nuevo.");
       setPhase("ajustes");
     }
-  }, [chart, settings, mix, keymap, handleFinish, inputMethod, micPrefs]);
+  }, [chart, settings, mix, keymap, handleFinish, inputMethod, micPrefs, track]);
 
   const exitToSettings = useCallback(async () => {
     await releaseRunning(runningRef.current);

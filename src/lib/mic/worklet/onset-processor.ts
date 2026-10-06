@@ -68,6 +68,9 @@ class OnsetProcessor extends AudioWorkletProcessor {
         case "onset":
           this.post({ type: "onset", onset: event.onset, time: event.onset.frame / sampleRate });
           break;
+        case "features":
+          this.post({ type: "features", frame: event.frame, features: event.features });
+          break;
         case "noise-profile":
           this.post({ type: "noise-profile", profile: event.profile });
           break;

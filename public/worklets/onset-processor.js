@@ -76,6 +76,9 @@
   var LOG_COMPRESSION = 10;
   var MIN_FLUX_FLOOR = 0.01;
   var SILENCE_DB = -120;
+  var FEATURE_SECONDS = 0.025;
+  var LOW_BAND_HZ = 250;
+  var HIGH_BAND_HZ = 2500;
   var clamp = (value, min, max) => Math.min(max, Math.max(min, value));
   var lerp = (a, b, t) => a + (b - a) * t;
   function thresholdsFor(settings) {
@@ -112,6 +115,13 @@
       this.calibrationHopsLeft = 0;
       this.calibrationLevels = [];
       this.calibrationFluxes = [];
+      this.featureHopsLeft = 0;
+      this.featureFrame = 0;
+      this.featureEnergy = new Float64Array(3);
+      this.featureWeightedHz = 0;
+      this.featureStartDb = SILENCE_DB;
+      this.featureEndDb = SILENCE_DB;
+      this.featureHopIndex = 0;
       /** Último nivel RMS por bloque, dBFS (para el medidor). */
       this.levelDb = SILENCE_DB;
       /** Puerta de nivel vigente, dBFS (para el medidor). */
@@ -133,6 +143,7 @@
       const fluxLength = Math.max(8, Math.round(FLUX_HISTORY_SECONDS / hopSeconds));
       this.fluxes = new Float64Array(fluxLength);
       this.fluxScratch = new Float64Array(fluxLength);
+      this.featureHops = Math.max(2, Math.round(FEATURE_SECONDS / hopSeconds));
     }
     get currentSettings() {
       return this.settings;
@@ -231,6 +242,7 @@
           events.push({ type: "noise-profile", profile });
         }
       } else if (warm && levelDb > gateDb && (riseDb >= thresholds.minRiseDb && flux > fluxThreshold || riseDb >= thresholds.minRiseDb * STRONG_RISE_FACTOR) && endFrame - this.lastOnsetFrame >= thresholds.refractoryMs / 1e3 * this.sampleRate) {
+        if (this.featureHopsLeft > 0) this.emitFeatures(events);
         const frame = this.refineOnset(endFrame, peak);
         this.lastOnsetFrame = frame;
         const peakDb = 20 * Math.log10(peak + 1e-12);
@@ -238,12 +250,50 @@
           type: "onset",
           onset: { frame, peakDb, riseDb, velocity: clamp((peakDb - gateDb) / 30, 0.05, 1) }
         });
+        this.startFeatures(frame);
+      }
+      if (this.featureHopsLeft > 0) {
+        this.accumulateFeatures(levelDb);
+        this.featureHopsLeft -= 1;
+        if (this.featureHopsLeft === 0) this.emitFeatures(events);
       }
       this.levels[this.levelPos] = levelDb;
       this.levelPos = (this.levelPos + 1) % this.levels.length;
       this.fluxes[this.fluxPos] = flux;
       this.fluxPos = (this.fluxPos + 1) % this.fluxes.length;
       this.fluxCount = Math.min(this.fluxCount + 1, this.fluxes.length);
+    }
+    startFeatures(frame) {
+      this.featureHopsLeft = this.featureHops;
+      this.featureFrame = frame;
+      this.featureEnergy.fill(0);
+      this.featureWeightedHz = 0;
+      this.featureStartDb = SILENCE_DB;
+      this.featureEndDb = SILENCE_DB;
+      this.featureHopIndex = 0;
+    }
+    accumulateFeatures(levelDb) {
+      const binHz = this.sampleRate / this.fftSize;
+      for (let k = 1; k < this.mags.length; k++) {
+        const energy = this.mags[k] * this.mags[k];
+        const hz = k * binHz;
+        this.featureEnergy[hz < LOW_BAND_HZ ? 0 : hz < HIGH_BAND_HZ ? 1 : 2] += energy;
+        this.featureWeightedHz += energy * hz;
+      }
+      if (this.featureHopIndex < 3) this.featureStartDb = Math.max(this.featureStartDb, levelDb);
+      this.featureEndDb = levelDb;
+      this.featureHopIndex += 1;
+    }
+    emitFeatures(events) {
+      this.featureHopsLeft = 0;
+      const [low, mid, high] = this.featureEnergy;
+      const total = low + mid + high + 1e-12;
+      const centroid = Math.max(20, this.featureWeightedHz / total);
+      events.push({
+        type: "features",
+        frame: this.featureFrame,
+        features: [Math.log2(centroid), low / total, high / total, (this.featureStartDb - this.featureEndDb) / 10]
+      });
     }
     fluxMedian() {
       const n = this.fluxCount;
@@ -313,6 +363,9 @@
         switch (event.type) {
           case "onset":
             this.post({ type: "onset", onset: event.onset, time: event.onset.frame / sampleRate });
+            break;
+          case "features":
+            this.post({ type: "features", frame: event.frame, features: event.features });
             break;
           case "noise-profile":
             this.post({ type: "noise-profile", profile: event.profile });

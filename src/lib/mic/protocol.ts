@@ -1,4 +1,4 @@
-import type { DetectorSettings, NoiseProfile, Onset } from "./onset-detector";
+import type { DetectorSettings, NoiseProfile, Onset, StrokeFeatures } from "./onset-detector";
 
 /** Nombre con el que se registra el procesador en el AudioWorklet. */
 export const ONSET_PROCESSOR_NAME = "heroleiros-onset";
@@ -20,6 +20,7 @@ export type ToWorklet =
 /** Worklet → hilo principal. */
 export type FromWorklet =
   | { type: "onset"; onset: Onset; /** Segundos de `AudioContext` del ataque. */ time: number }
+  | { type: "features"; frame: number; features: StrokeFeatures }
   | { type: "noise-profile"; profile: NoiseProfile }
   | {
       type: "level";

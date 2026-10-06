@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { DEFAULT_MIC_PREFERENCES, detectorSettingsFrom, sanitizeMicPreferences } from "./settings";
+import type { StrokeFeatures } from "./onset-detector";
+import {
+  DEFAULT_MIC_PREFERENCES,
+  classifierFor,
+  detectorSettingsFrom,
+  sanitizeMicPreferences,
+  strokeProfileFor,
+} from "./settings";
+import { MIN_SAMPLES_PER_LANE } from "./stroke-classifier";
 
 describe("preferencias del micrófono", () => {
   it("usa los valores por defecto si no hay nada guardado o está roto", () => {
@@ -29,5 +37,23 @@ describe("preferencias del micrófono", () => {
     });
     expect(prefs.noise).toEqual({ floorDb: -48.5, flux: 0.04 });
     expect(detectorSettingsFrom(prefs)).toEqual({ sensitivity: 0.7, refractoryMs: 80, noise: { floorDb: -48.5, flux: 0.04 } });
+  });
+
+  it("solo usa el perfil de timbre si encaja con los carriles y está entrenado", () => {
+    const sample: StrokeFeatures = [8, 0.5, 0.1, 0.2];
+    const lane = Array.from({ length: MIN_SAMPLES_PER_LANE }, () => sample);
+    const prefs = sanitizeMicPreferences({
+      classifyStrokes: true,
+      strokeProfiles: {
+        surdo1: { strokes: ["abierto", "apagado"], samples: [lane, lane.map(([a, b, c, d]) => [a + 3, b, c, d])] },
+        caixa: { strokes: ["abierto"], samples: [[["roto"]]] },
+        inventado: { strokes: [], samples: [] },
+      },
+    });
+    expect(Object.keys(prefs.strokeProfiles)).toEqual(["surdo1"]);
+    expect(classifierFor(prefs, "surdo1", ["abierto", "apagado"])).not.toBeNull();
+    expect(classifierFor(prefs, "surdo1", ["abierto", "aro"])).toBeNull();
+    expect(classifierFor({ ...prefs, classifyStrokes: false }, "surdo1", ["abierto", "apagado"])).toBeNull();
+    expect(strokeProfileFor(prefs, "caixa", ["abierto", "aro"])).toEqual({ strokes: ["abierto", "aro"], samples: [[], []] });
   });
 });

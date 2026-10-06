@@ -9,10 +9,12 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import type { InstrumentId, StrokeId } from "@/lib/chart/types";
 import { MicInput, listMicrophones, toMicError } from "@/lib/mic/mic-input";
 import { REFRACTORY_RANGE, detectorSettingsFrom, type MicPreferences } from "@/lib/mic/settings";
 
 import { MicLevelMeter } from "./mic-level-meter";
+import { StrokeTrainer } from "./stroke-trainer";
 
 const NOISE_SECONDS = 3;
 
@@ -27,6 +29,8 @@ interface MicSetupProps {
   prefs: MicPreferences;
   onChange: (patch: Partial<MicPreferences>) => void;
   latencyMs: number;
+  instrument: InstrumentId;
+  lanes: StrokeId[];
 }
 
 /**
@@ -34,7 +38,7 @@ interface MicSetupProps {
  * ruido de la sala, sensibilidad y aviso de auriculares. Usa su propio
  * `AudioContext`, que se cierra al salir.
  */
-export function MicSetup({ prefs, onChange, latencyMs }: MicSetupProps) {
+export function MicSetup({ prefs, onChange, latencyMs, instrument, lanes }: MicSetupProps) {
   const [status, setStatus] = useState<Status>("apagado");
   const [error, setError] = useState<string | null>(null);
   const [monitor, setMonitor] = useState<Monitor | null>(null);
@@ -220,6 +224,14 @@ export function MicSetup({ prefs, onChange, latencyMs }: MicSetupProps) {
         />
         <p className="text-xs text-muted-foreground">Súbelo si un solo golpe cuenta doble (eco, parche que vibra).</p>
       </div>
+
+      <StrokeTrainer
+        mic={status === "activo" ? (monitor?.mic ?? null) : null}
+        instrument={instrument}
+        lanes={lanes}
+        prefs={prefs}
+        onChange={onChange}
+      />
 
       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Timer className="size-3.5" />

@@ -24,7 +24,7 @@ const { values } = parseArgs({
   },
 });
 
-const KINDS: HitKind[] = ["surdo", "caixa", "tamborim", "clic"];
+const KINDS: HitKind[] = ["surdo", "surdo-apagado", "aro", "caixa", "tamborim", "clic"];
 const kind = values.kind as HitKind;
 if (!KINDS.includes(kind)) throw new Error(`--kind debe ser uno de: ${KINDS.join(", ")}`);
 

@@ -36,7 +36,17 @@ export interface Onset {
   velocity: number;
 }
 
-export type DetectorEvent = { type: "onset"; onset: Onset } | { type: "noise-profile"; profile: NoiseProfile };
+/**
+ * Timbre de los primeros ~25 ms de un golpe, para distinguir abierto, apagado
+ * o aro (fase B): [log2 del centroide espectral en Hz, fracción de energía
+ * por debajo de 250 Hz, fracción por encima de 2,5 kHz, caída de nivel en dB/10].
+ */
+export type StrokeFeatures = [number, number, number, number];
+
+export type DetectorEvent =
+  | { type: "onset"; onset: Onset }
+  | { type: "features"; frame: number; features: StrokeFeatures }
+  | { type: "noise-profile"; profile: NoiseProfile };
 
 export interface Thresholds {
   /** Nivel mínimo para aceptar un golpe, por encima del ruido medido. */
@@ -68,6 +78,9 @@ const STRONG_RISE_FACTOR = 2.5;
 const LOG_COMPRESSION = 10;
 const MIN_FLUX_FLOOR = 0.01;
 const SILENCE_DB = -120;
+const FEATURE_SECONDS = 0.025;
+const LOW_BAND_HZ = 250;
+const HIGH_BAND_HZ = 2500;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -146,6 +159,15 @@ export class OnsetDetector {
   private calibrationLevels: number[] = [];
   private calibrationFluxes: number[] = [];
 
+  private readonly featureHops: number;
+  private featureHopsLeft = 0;
+  private featureFrame = 0;
+  private readonly featureEnergy = new Float64Array(3);
+  private featureWeightedHz = 0;
+  private featureStartDb = SILENCE_DB;
+  private featureEndDb = SILENCE_DB;
+  private featureHopIndex = 0;
+
   /** Último nivel RMS por bloque, dBFS (para el medidor). */
   levelDb = SILENCE_DB;
   /** Puerta de nivel vigente, dBFS (para el medidor). */
@@ -169,6 +191,7 @@ export class OnsetDetector {
     const fluxLength = Math.max(8, Math.round(FLUX_HISTORY_SECONDS / hopSeconds));
     this.fluxes = new Float64Array(fluxLength);
     this.fluxScratch = new Float64Array(fluxLength);
+    this.featureHops = Math.max(2, Math.round(FEATURE_SECONDS / hopSeconds));
   }
 
   get currentSettings(): DetectorSettings {
@@ -290,6 +313,7 @@ export class OnsetDetector {
       ((riseDb >= thresholds.minRiseDb && flux > fluxThreshold) || riseDb >= thresholds.minRiseDb * STRONG_RISE_FACTOR) &&
       endFrame - this.lastOnsetFrame >= (thresholds.refractoryMs / 1000) * this.sampleRate
     ) {
+      if (this.featureHopsLeft > 0) this.emitFeatures(events);
       const frame = this.refineOnset(endFrame, peak);
       this.lastOnsetFrame = frame;
       const peakDb = 20 * Math.log10(peak + 1e-12);
@@ -297,6 +321,13 @@ export class OnsetDetector {
         type: "onset",
         onset: { frame, peakDb, riseDb, velocity: clamp((peakDb - gateDb) / 30, 0.05, 1) },
       });
+      this.startFeatures(frame);
+    }
+
+    if (this.featureHopsLeft > 0) {
+      this.accumulateFeatures(levelDb);
+      this.featureHopsLeft -= 1;
+      if (this.featureHopsLeft === 0) this.emitFeatures(events);
     }
 
     this.levels[this.levelPos] = levelDb;
@@ -304,6 +335,42 @@ export class OnsetDetector {
     this.fluxes[this.fluxPos] = flux;
     this.fluxPos = (this.fluxPos + 1) % this.fluxes.length;
     this.fluxCount = Math.min(this.fluxCount + 1, this.fluxes.length);
+  }
+
+  private startFeatures(frame: number) {
+    this.featureHopsLeft = this.featureHops;
+    this.featureFrame = frame;
+    this.featureEnergy.fill(0);
+    this.featureWeightedHz = 0;
+    this.featureStartDb = SILENCE_DB;
+    this.featureEndDb = SILENCE_DB;
+    this.featureHopIndex = 0;
+  }
+
+  private accumulateFeatures(levelDb: number) {
+    const binHz = this.sampleRate / this.fftSize;
+    for (let k = 1; k < this.mags.length; k++) {
+      const energy = this.mags[k] * this.mags[k];
+      const hz = k * binHz;
+      this.featureEnergy[hz < LOW_BAND_HZ ? 0 : hz < HIGH_BAND_HZ ? 1 : 2] += energy;
+      this.featureWeightedHz += energy * hz;
+    }
+    // El ataque puede tardar un par de bloques en llegar a su máximo.
+    if (this.featureHopIndex < 3) this.featureStartDb = Math.max(this.featureStartDb, levelDb);
+    this.featureEndDb = levelDb;
+    this.featureHopIndex += 1;
+  }
+
+  private emitFeatures(events: DetectorEvent[]) {
+    this.featureHopsLeft = 0;
+    const [low, mid, high] = this.featureEnergy;
+    const total = low + mid + high + 1e-12;
+    const centroid = Math.max(20, this.featureWeightedHz / total);
+    events.push({
+      type: "features",
+      frame: this.featureFrame,
+      features: [Math.log2(centroid), low / total, high / total, (this.featureStartDb - this.featureEndDb) / 10],
+    });
   }
 
   private fluxMedian(): number {

@@ -1,4 +1,4 @@
-import type { DetectorSettings, NoiseProfile, Onset } from "./onset-detector";
+import type { DetectorSettings, NoiseProfile, Onset, StrokeFeatures } from "./onset-detector";
 import { ONSET_PROCESSOR_NAME, ONSET_PROCESSOR_URL, type FromWorklet, type OnsetProcessorOptions, type ToWorklet } from "./protocol";
 
 export type MicErrorCode = "inseguro" | "sin-soporte" | "denegado" | "sin-dispositivo" | "ocupado" | "desconocido";
@@ -43,6 +43,12 @@ export interface MicOnsetEvent {
   time: number;
 }
 
+export interface MicFeaturesEvent {
+  /** Frame del ataque al que corresponden (el mismo que `onset.frame`). */
+  frame: number;
+  features: StrokeFeatures;
+}
+
 export interface MicLevelEvent {
   levelDb: number;
   peakDb: number;
@@ -82,6 +88,7 @@ export async function listMicrophones(): Promise<MediaDeviceInfo[]> {
 export class MicInput {
   private readonly onsetListeners = new Set<(event: MicOnsetEvent) => void>();
   private readonly levelListeners = new Set<(event: MicLevelEvent) => void>();
+  private readonly featureListeners = new Set<(event: MicFeaturesEvent) => void>();
   private noiseWaiters: ((profile: NoiseProfile) => void)[] = [];
   private closed = false;
 
@@ -172,6 +179,12 @@ export class MicInput {
     return () => this.levelListeners.delete(listener);
   }
 
+  /** Timbre de cada golpe, ~25 ms después de su ataque (fase B). */
+  onFeatures(listener: (event: MicFeaturesEvent) => void): () => void {
+    this.featureListeners.add(listener);
+    return () => this.featureListeners.delete(listener);
+  }
+
   configure(settings: Partial<DetectorSettings>): void {
     this.post({ type: "configure", settings });
   }
@@ -202,6 +215,7 @@ export class MicInput {
     for (const track of this.stream.getTracks()) track.stop();
     this.onsetListeners.clear();
     this.levelListeners.clear();
+    this.featureListeners.clear();
   }
 
   private post(message: ToWorklet) {
@@ -215,6 +229,9 @@ export class MicInput {
         break;
       case "level":
         for (const listener of this.levelListeners) listener(message);
+        break;
+      case "features":
+        for (const listener of this.featureListeners) listener({ frame: message.frame, features: message.features });
         break;
       case "noise-profile": {
         const waiters = this.noiseWaiters;

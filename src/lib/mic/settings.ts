@@ -1,5 +1,7 @@
+import { INSTRUMENT_IDS, type InstrumentId, type StrokeId } from "../chart/types";
 import { readLocal, writeLocal } from "../settings/local";
 import { DEFAULT_DETECTOR_SETTINGS, type DetectorSettings, type NoiseProfile } from "./onset-detector";
+import { StrokeClassifier, emptyProfile, isProfileReady, isStrokeFeatures, type StrokeProfile } from "./stroke-classifier";
 
 /** «teclado» incluye también los pads táctiles. */
 export type InputMethod = "teclado" | "microfono";
@@ -11,6 +13,14 @@ export interface MicPreferences {
   noise: NoiseProfile | null;
   /** El jugador confirma que lleva auriculares (el acompañamiento no llega al micro). */
   headphones: boolean;
+  /** Fase B (experimental): distinguir el tipo de golpe con el perfil entrenado. */
+  classifyStrokes: boolean;
+  strokeProfiles: Partial<Record<InstrumentId, SavedStrokeProfile>>;
+}
+
+/** Perfil de timbre guardado junto con los golpes (carriles) para los que se entrenó. */
+export interface SavedStrokeProfile extends StrokeProfile {
+  strokes: StrokeId[];
 }
 
 export const DEFAULT_MIC_PREFERENCES: MicPreferences = {
@@ -19,6 +29,8 @@ export const DEFAULT_MIC_PREFERENCES: MicPreferences = {
   refractoryMs: DEFAULT_DETECTOR_SETTINGS.refractoryMs,
   noise: null,
   headphones: false,
+  classifyStrokes: false,
+  strokeProfiles: {},
 };
 
 export const REFRACTORY_RANGE = { min: 30, max: 200 } as const;
@@ -40,7 +52,42 @@ export function sanitizeMicPreferences(raw: unknown): MicPreferences {
     refractoryMs: Math.round(Math.min(REFRACTORY_RANGE.max, Math.max(REFRACTORY_RANGE.min, refractory))),
     noise: isNoiseProfile(v.noise) ? { floorDb: v.noise.floorDb, flux: v.noise.flux } : null,
     headphones: v.headphones === true,
+    classifyStrokes: v.classifyStrokes === true,
+    strokeProfiles: sanitizeProfiles(v.strokeProfiles),
   };
+}
+
+function sanitizeProfiles(raw: unknown): Partial<Record<InstrumentId, SavedStrokeProfile>> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Partial<Record<InstrumentId, SavedStrokeProfile>> = {};
+  for (const [instrument, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!(INSTRUMENT_IDS as readonly string[]).includes(instrument) || !value || typeof value !== "object") continue;
+    const { strokes, samples } = value as Partial<SavedStrokeProfile>;
+    if (
+      Array.isArray(strokes) &&
+      strokes.every((s) => typeof s === "string") &&
+      Array.isArray(samples) &&
+      samples.length === strokes.length &&
+      samples.every((lane) => Array.isArray(lane) && lane.every(isStrokeFeatures))
+    ) {
+      out[instrument as InstrumentId] = { strokes, samples };
+    }
+  }
+  return out;
+}
+
+/** Perfil entrenado para estos carriles, o un perfil vacío si no hay o no encaja. */
+export function strokeProfileFor(prefs: MicPreferences, instrument: InstrumentId, lanes: StrokeId[]): SavedStrokeProfile {
+  const saved = prefs.strokeProfiles[instrument];
+  if (saved && saved.strokes.length === lanes.length && saved.strokes.every((s, i) => s === lanes[i])) return saved;
+  return { strokes: [...lanes], ...emptyProfile(lanes.length) };
+}
+
+/** Clasificador listo para la partida, o `null` si la fase B está apagada o sin entrenar. */
+export function classifierFor(prefs: MicPreferences, instrument: InstrumentId, lanes: StrokeId[]): StrokeClassifier | null {
+  if (!prefs.classifyStrokes || lanes.length < 2) return null;
+  const profile = strokeProfileFor(prefs, instrument, lanes);
+  return isProfileReady(profile, lanes.length) ? new StrokeClassifier(profile) : null;
 }
 
 export function detectorSettingsFrom(prefs: MicPreferences): DetectorSettings {

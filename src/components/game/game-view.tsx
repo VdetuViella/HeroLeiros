@@ -19,13 +19,19 @@ import { positionAt } from "@/lib/session/timeline";
 import { Highway } from "./highway";
 import { TouchPads } from "./touch-pads";
 
+export interface GameMic {
+  input: MicInput;
+  /** Fase B: los golpes llevan carril según su timbre. */
+  classifies: boolean;
+}
+
 interface GameViewProps {
   session: GameSession;
   chart: Chart;
   keyLabels: string[];
   touch: TouchInputSource;
   /** Si se juega con micrófono, sustituye a los pads táctiles. */
-  mic?: MicInput | null;
+  mic?: GameMic | null;
   onRestart: () => void;
   onExit: () => void;
 }
@@ -176,9 +182,11 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
           <div className="space-y-1.5 rounded-2xl border border-border/60 bg-card px-4 py-3">
             <p className="flex items-center gap-2 text-sm font-medium">
               <Mic className="size-4 text-primary" /> Micrófono activo
-              <span className="ml-auto text-xs font-normal text-muted-foreground">Cualquier golpe vale: cuenta el tiempo</span>
+              <span className="ml-auto text-xs font-normal text-muted-foreground">
+                {mic.classifies ? "Cada golpe va a su carril (experimental)" : "Cualquier golpe vale: cuenta el tiempo"}
+              </span>
             </p>
-            <MicLevelMeter mic={mic} />
+            <MicLevelMeter mic={mic.input} />
           </div>
         ) : (
           <TouchPads instrument={track.instrument} lanes={lanes} keyLabels={keyLabels} source={touch} />

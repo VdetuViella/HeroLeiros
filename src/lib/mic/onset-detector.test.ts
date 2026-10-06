@@ -194,6 +194,8 @@ describe("OnsetDetector", () => {
           case "noise-profile":
             profile = event.profile;
             break;
+          case "features":
+            break;
           default: {
             const exhaustive: never = event;
             throw new Error(`Evento desconocido: ${JSON.stringify(exhaustive)}`);

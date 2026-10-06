@@ -5,7 +5,7 @@
  * navegador en las pruebas.
  */
 
-export type HitKind = "surdo" | "caixa" | "tamborim" | "clic";
+export type HitKind = "surdo" | "surdo-apagado" | "aro" | "caixa" | "tamborim" | "clic";
 
 export interface SyntheticHit {
   time: number;
@@ -38,7 +38,7 @@ export function noise(length: number, rms: number, random: () => number): Float3
 }
 
 export function hitSound(kind: HitKind, sampleRate: number, gain: number, random: () => number): Float32Array {
-  const seconds = kind === "surdo" ? 0.6 : kind === "caixa" ? 0.18 : kind === "tamborim" ? 0.1 : 0.03;
+  const seconds = kind === "surdo" ? 0.6 : kind === "surdo-apagado" ? 0.25 : kind === "caixa" ? 0.18 : kind === "tamborim" || kind === "aro" ? 0.1 : 0.03;
   const length = Math.round(seconds * sampleRate);
   const out = new Float32Array(length);
   let phase = 0;
@@ -52,6 +52,21 @@ export function hitSound(kind: HitKind, sampleRate: number, gain: number, random
         phase += (2 * Math.PI * freq) / sampleRate;
         const click = (random() * 2 - 1) * 0.35 * Math.exp(-t / 0.004);
         value = Math.sin(phase) * Math.exp(-t / 0.25) + click;
+        break;
+      }
+      case "surdo-apagado": {
+        // La mano sobre el parche corta la resonancia enseguida.
+        const freq = 60 + 30 * Math.exp(-t / 0.03);
+        phase += (2 * Math.PI * freq) / sampleRate;
+        const click = (random() * 2 - 1) * 0.35 * Math.exp(-t / 0.004);
+        value = Math.sin(phase) * Math.exp(-t / 0.012) + click;
+        break;
+      }
+      case "aro": {
+        // Baqueta contra el aro metálico: chasquido agudo y seco con algo de cuerpo.
+        const ring = Math.sin(2 * Math.PI * 3200 * t) * 0.5 + Math.sin(2 * Math.PI * 5100 * t) * 0.3;
+        const body = Math.sin(2 * Math.PI * 70 * t) * 0.25 * Math.exp(-t / 0.05);
+        value = (ring + (random() * 2 - 1) * 0.6) * Math.exp(-t / 0.008) + body;
         break;
       }
       case "caixa": {

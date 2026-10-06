@@ -152,7 +152,13 @@ export function SetupPanel(props: SetupPanelProps) {
                 </ToggleGroupItem>
               </ToggleGroup>
               {props.inputMethod === "microfono" ? (
-                <MicSetup prefs={props.micPrefs} onChange={props.onMicPrefsChange} latencyMs={props.latencyMs} />
+                <MicSetup
+                  prefs={props.micPrefs}
+                  onChange={props.onMicPrefsChange}
+                  latencyMs={props.latencyMs}
+                  instrument={track.instrument}
+                  lanes={track.lanes}
+                />
               ) : (
                 <KeymapEditor
                   instrument={track.instrument}
