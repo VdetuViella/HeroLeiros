@@ -19,6 +19,10 @@ golpe a golpe.
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
 - **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
 - **Samples opcionales**: si `public/samples/` está vacío, cada golpe se sintetiza en el navegador.
+- **Cuentas y progreso en la nube** (opcional): email y contraseña, roles director/miembro,
+  grupos con enlace de invitación, historial y evolución de cada integrante y un panel del
+  director con la mejor precisión por canción, la actividad reciente y las secciones con más
+  fallos. Sin cuenta (o sin base de datos) se juega igual y las partidas quedan en el navegador.
 
 ## Requisitos
 
@@ -30,6 +34,35 @@ golpe a golpe.
 npm ci
 npm run dev        # http://127.0.0.1:43147
 ```
+
+Así ya se puede jugar. Para activar las cuentas y el progreso en la nube hace falta Postgres
+(Docker en local):
+
+```bash
+cp .env.example .env.local   # y cambia BETTER_AUTH_SECRET (openssl rand -base64 32)
+npm run db:up                # Postgres 16 en 127.0.0.1:54329 (docker-compose.yml)
+npm run db:setup             # migraciones + datos de demo
+npm run dev
+```
+
+Cuentas de demo (contraseña `batucada123`):
+
+| Cuenta                       | Rol        | Qué ver |
+| ---------------------------- | ---------- | ------- |
+| `directora@heroleiros.demo`  | directora  | `/director`: panel del grupo «Bloco Leiros» |
+| `ana@heroleiros.demo`, `bruno@…`, `carla@…`, `diego@…`, `elena@…`, `fran@…`, `gael@…` | miembros | `/progreso`: historial, mejores marcas y evolución |
+
+El enlace de invitación de la demo es `/unirse/ensayo2026`. `npm run db:seed` borra y recrea
+solo a los usuarios `@heroleiros.demo`.
+
+### Variables de entorno
+
+| Variable               | Obligatoria | Para qué |
+| ---------------------- | ----------- | -------- |
+| `DATABASE_URL`         | Para cuentas | Conexión a Postgres. Sin ella la app funciona solo en local. |
+| `BETTER_AUTH_SECRET`   | En producción | Firma de las sesiones (≥ 32 caracteres). |
+| `BETTER_AUTH_URL`      | En producción | URL pública de la app (en local, `http://127.0.0.1:43147`). |
+| `AUTH_TRUSTED_ORIGINS` | No | Orígenes extra permitidos para iniciar sesión, separados por comas. |
 
 ## Scripts
 
@@ -43,6 +76,11 @@ npm run dev        # http://127.0.0.1:43147
 | `npm run songs:check`         | Valida las canciones de `content/songs` (pistas, notas sin mapear, compases, secciones). |
 | `npm run songs:generate`      | Regenera los `.mid` de ejemplo y la plantilla MIDI. |
 | `npm run samples:manifest`    | Escanea `public/samples/` y escribe `manifest.json`. |
+| `npm run db:up`               | Arranca Postgres con Docker Compose. |
+| `npm run db:generate`         | Genera una migración en `drizzle/` tras cambiar `src/server/db/schema.ts`. |
+| `npm run db:migrate`          | Aplica las migraciones a `DATABASE_URL`. |
+| `npm run db:seed`             | Crea la directora, el grupo y los miembros de demo con tres semanas de partidas. |
+| `npm run db:setup`            | `db:migrate` + `db:seed`. |
 
 ## Añadir una canción
 
@@ -72,8 +110,34 @@ src/components/game/song-player.tsx
         ├─ src/lib/audio/                   AudioEngine (Tone.js), samples + sintetizador
         ├─ src/lib/input/                   InputSource: teclado, táctil (micrófono en el futuro)
         ├─ src/lib/judge/                   Judge: ventanas, combo, precisión, estrellas
-        └─ src/lib/attempts/                AttemptResult + reportAttempt() (hoy localStorage)
+        └─ src/lib/attempts/                AttemptResult + reportAttempt() (localStorage + cola de subida)
+
+src/components/account/account-provider.tsx  sesión (Better Auth) + reporter que encola cada partida
+src/lib/attempts/sync.ts                     AttemptUploader: cola en localStorage, lotes y reintentos
+        │  POST /api/attempts  { attempts: [{ key, result }] }  (idempotente por clave)
+        ▼
+src/app/api/…            Route Handlers finos → src/server/api/* (lógica testeable)
+src/server/auth.ts       Better Auth (email/contraseña, campo `role` en users)
+src/server/db/schema.ts  Drizzle: users, sessions, accounts, verifications, groups, memberships, attempts
+src/server/progress/     consultas de agregación de los paneles (miembro y director)
+drizzle/                 migraciones SQL generadas
 ```
+
+### Cuentas y progreso
+
+- **Roles**: todos se registran como `miembro`; quien crea un grupo (al registrarse con «Dirijo
+  un grupo» o desde `/director`) pasa a `director`. El cliente nunca puede fijar el rol.
+- **Invitaciones**: cada grupo tiene un código; el enlace `/unirse/<código>` deja crear cuenta o
+  entrar y une al grupo. El director puede regenerarlo (el anterior deja de valer).
+- **Intentos**: con sesión, cada partida terminada se guarda en local y se encola. La cola vive en
+  `localStorage`, se envía en lotes de 50 y se reintenta (5 s, 15 s, 1 min, 5 min), al volver la
+  conexión y al volver a la pestaña. La clave `startedAt|canción|instrumento` hace que los
+  reenvíos no dupliquen. Las partidas jugadas sin sesión se ofrecen para subir al entrar.
+- **Paneles**: `/progreso` (historial, mejor marca por canción e instrumento, precisión por día)
+  y `/director` (miembros × canciones, actividad reciente, secciones con más fallos de los
+  últimos 30 días por proporción de notas falladas).
+- **Tests**: los de `src/server/**` usan PGlite (Postgres en memoria) con las migraciones reales,
+  así que `npm test` no necesita Docker.
 
 ### Puntos de extensión
 
@@ -84,13 +148,14 @@ src/components/game/song-player.tsx
 - **Partitura**: el `Chart` (`src/lib/chart/types.ts`) trae cada nota con pulso, compás, golpe y
   acento; `GameSession.now()` y `positionAt()` dan la posición actual para un cursor sincronizado.
 - **Backend de intentos**: cada partida terminada produce un `AttemptResult`
-  (`src/lib/attempts/types.ts`). `reportAttempt()` lo guarda hoy en `localStorage`; basta con
-  `setAttemptReporter({ submit: (r) => fetch("/api/attempts", …) })` para enviarlo al servidor.
-  `SongPlayer` también acepta `onAttemptComplete`.
+  (`src/lib/attempts/types.ts`). `AccountProvider` instala con `setAttemptReporter` un reporter
+  que lo guarda en local y, con sesión, lo encola para `POST /api/attempts`. `SongPlayer` también
+  acepta `onAttemptComplete`. Si se añaden campos a `AttemptResult`, hay que validarlos en
+  `src/server/attempts/validate.ts` y añadir la columna en el esquema.
 
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Base UI) ·
-Tone.js · @tonejs/midi · Vitest.
+Tone.js · @tonejs/midi · Postgres · Drizzle ORM · Better Auth · Zod · Vitest + PGlite.
 
 Configuración de MCP para Cursor en local: [`docs/cursor-local.md`](docs/cursor-local.md).

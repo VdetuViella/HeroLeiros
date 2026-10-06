@@ -25,3 +25,9 @@ Juego de ritmo para ensayar batucada. Toda la UI y la documentación van en espa
 - El audio necesita un gesto del usuario: en pruebas de navegador, pulsa «Tocar …» antes de esperar sonido.
   Sin altavoces la partida funciona igual (el reloj es el del `AudioContext`).
 - Flujo para probar a mano: portada → canción → elegir instrumento → «Tocar» → teclas D F J K → resultados.
+- Cuentas (opcional): sin `DATABASE_URL` la app funciona solo en local. Para activarlas hace falta
+  Postgres: `cp .env.example .env.local`, `npm run db:up` (Docker; en la VM no hay systemd, arranca
+  el demonio con `sudo dockerd` en una sesión tmux y usa `sudo docker compose …`), luego
+  `npm run db:setup`. Demo: `directora@heroleiros.demo` / `batucada123` → `/director`;
+  `ana@heroleiros.demo` → `/progreso`. Los tests de `src/server` usan PGlite y no necesitan Docker.
+- Tras cambiar `src/server/db/schema.ts`: `npm run db:generate` y commitea la migración de `drizzle/`.

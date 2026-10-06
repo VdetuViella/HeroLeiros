@@ -24,7 +24,8 @@ interface AccountContextValue {
   queued: number;
   sync: SyncState;
   unsynced: AttemptResult[];
-  uploadUnsynced: () => void;
+  /** Encola las partidas locales pendientes y espera al primer envío. */
+  uploadUnsynced: () => Promise<void>;
   dismissUnsynced: () => void;
   signOut: () => Promise<void>;
   refreshSession: () => void;
@@ -66,7 +67,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const [queued, setQueued] = useState(0);
   const [sync, setSync] = useState<SyncState>("inactivo");
   const [unsynced, setUnsynced] = useState<AttemptResult[]>([]);
-  const kickRef = useRef<() => void>(() => {});
+  const kickRef = useRef<() => Promise<void>>(async () => {});
 
   const rawUser = session.data?.user;
   const user = useMemo<AccountUser | null>(
@@ -95,7 +96,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!userId) {
       setAttemptReporter(localAttemptReporter);
-      kickRef.current = () => {};
+      kickRef.current = async () => {};
       return;
     }
     let cancelled = false;
@@ -118,10 +119,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
       }
     };
     const kick = () => void flush();
+    kickRef.current = flush;
     const onVisible = () => {
       if (document.visibilityState === "visible") kick();
     };
-    kickRef.current = kick;
 
     setAttemptReporter({
       async submit(result) {
@@ -146,11 +147,11 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     };
   }, [userId, uploader, refreshCounts]);
 
-  const uploadUnsynced = useCallback(() => {
+  const uploadUnsynced = useCallback(async () => {
     if (!userId) return;
     uploader.enqueue(userId, uploader.unsyncedLocal(userId));
     refreshCounts(userId);
-    kickRef.current();
+    await kickRef.current();
   }, [userId, uploader, refreshCounts]);
 
   const dismissUnsynced = useCallback(() => {
