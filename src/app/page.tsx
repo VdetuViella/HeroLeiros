@@ -1,163 +1,110 @@
-import { DiagnosticList } from "@/components/diagnostic-list";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { counts, mcps, plugins, probedAt } from "@/data/diagnostics";
-import { probeContext7 } from "@/lib/context7";
+import Link from "next/link";
+import { ArrowRight, FolderOpen, Gauge, Keyboard, Repeat, Smartphone } from "lucide-react";
 
-const mcpCounts = counts(mcps);
-const pluginCounts = counts(plugins);
+import { InstrumentChip } from "@/components/instrument-chip";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDuration } from "@/lib/format";
+import { loadAllSongs } from "@/lib/songs/load";
+
+const FEATURES = [
+  { icon: Keyboard, title: "Teclado", text: "Teclas D F J K por defecto, configurables por carril." },
+  { icon: Smartphone, title: "Pantalla táctil", text: "Pads grandes y multitáctiles en el móvil o la tableta." },
+  { icon: Gauge, title: "Velocidad", text: "Del 50 al 100 % sin perder calidad de sonido." },
+  { icon: Repeat, title: "Bucles", text: "Repite una sección o cualquier tramo de compases." },
+];
 
 export default async function Home() {
-  const context7 = await probeContext7();
+  const songs = await loadAllSongs();
 
   return (
-    <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-8 px-4 py-10 sm:px-6">
-      <header className="flex flex-col gap-3">
-        <p className="text-sm font-medium text-emerald-700 dark:text-emerald-400">
-          Diagnóstico del agente · {probedAt}
-        </p>
-        <h1 className="font-heading text-3xl tracking-tight sm:text-4xl">
-          MCP y plugins
-        </h1>
-        <p className="max-w-2xl text-muted-foreground">
-          Se probaron las integraciones de este agente. Context7 ya responde
-          con tu API key (búsqueda de React correcta). Quedan los MCP de
-          Cloudflare, que el plugin no registra.
-        </p>
-      </header>
-
-      <Card className={context7.ok ? "ring-emerald-500/30" : "ring-amber-500/40"}>
-        <CardHeader>
-          <CardTitle>Context7 ahora mismo</CardTitle>
-          <CardDescription>
-            {context7.ok
-              ? `Clave válida. Última búsqueda de React → ${context7.libraryId}`
-              : context7.error}
-          </CardDescription>
-        </CardHeader>
-      </Card>
-
-      <section className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard
-          label="MCP operativos"
-          value={`${mcpCounts.ok} / ${mcpCounts.total}`}
-          hint="GitHub, Gmail, Calendar, Drive, Granola, Notion, Apify, Playwright, Context7"
-        />
-        <SummaryCard
-          label="Pendientes"
-          value={String(mcpCounts.action)}
-          hint="4 MCP de Cloudflare (el plugin no los declara)"
-          tone="warn"
-        />
-        <SummaryCard
-          label="Plugins parciales"
-          value={String(pluginCounts.partial)}
-          hint="cloudflare: skills sí, MCP no conectados"
-          tone="info"
-        />
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-10 sm:px-6">
+      <section className="relative overflow-hidden rounded-3xl border border-border/60 bg-gradient-to-br from-amber-500/15 via-fuchsia-500/10 to-sky-500/10 p-6 sm:p-10">
+        <div className="max-w-2xl space-y-4">
+          <Badge variant="outline" className="border-primary/40 text-primary">
+            Ensayo de batucada
+          </Badge>
+          <h1 className="font-heading text-4xl font-extrabold tracking-tight text-balance sm:text-5xl">
+            Toca tu parte con todo el grupo sonando de fondo
+          </h1>
+          <p className="text-lg text-muted-foreground text-pretty">
+            Elige una canción y tu instrumento, baja la velocidad si hace falta y practica la sección
+            que se te resiste. Cada golpe se puntúa al milisegundo.
+          </p>
+        </div>
+        <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {FEATURES.map(({ icon: Icon, title, text }) => (
+            <li key={title} className="flex gap-3 rounded-xl bg-background/50 p-3">
+              <Icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
+              <div>
+                <p className="text-sm font-medium">{title}</p>
+                <p className="text-xs text-muted-foreground">{text}</p>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Qué queda</CardTitle>
-          <CardDescription>
-            Context7 ya está desbloqueado. Cloudflare sigue sin MCP.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-6 sm:grid-cols-2">
-          <ol className="list-decimal space-y-3 pl-5 text-sm">
-            <li>
-              La clave de Context7 ya es válida por REST. Si el MCP del chat
-              sigue en cuota anónima, no crees otra: usa un agente nuevo (o
-              recarga MCP) con el secreto{" "}
-              <code className="font-mono text-xs">CONTEXT7_API_KEY</code>.
-            </li>
-            <li>
-              En Cursor Desktop, abre Customize → MCP y autentica los servidores
-              Cloudflare (docs, bindings, builds, observability).
-            </li>
-          </ol>
-          <div className="rounded-lg bg-muted/60 p-4 font-mono text-xs leading-relaxed text-muted-foreground">
-            {`.cursor/mcp.json
-  context7 → mcp.context7.com
-    header CONTEXT7_API_KEY
-  cloudflare-docs
-  cloudflare-bindings
-  cloudflare-builds
-  cloudflare-observability`}
+      <section className="space-y-4" aria-labelledby="canciones">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <h2 id="canciones" className="font-heading text-2xl font-bold tracking-tight">
+              Canciones
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {songs.length === 1 ? "1 canción disponible" : `${songs.length} canciones disponibles`}
+            </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Servidores MCP</CardTitle>
-            <CardDescription>
-              {mcpCounts.ok} operativos · {mcpCounts.action} requieren acción
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DiagnosticList items={mcps} />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Plugins</CardTitle>
-            <CardDescription>
-              {pluginCounts.ok} operativos · {pluginCounts.partial} parciales
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DiagnosticList items={plugins} />
-          </CardContent>
-        </Card>
+        {songs.length === 0 ? (
+          <Card className="items-center py-12 text-center">
+            <CardContent className="flex flex-col items-center gap-3">
+              <FolderOpen className="size-10 text-muted-foreground" aria-hidden />
+              <p className="font-medium">Todavía no hay canciones</p>
+              <p className="max-w-md text-sm text-muted-foreground">
+                El director puede añadirlas en <code className="font-mono">content/songs/&lt;nombre&gt;/</code> con un{" "}
+                <code className="font-mono">song.mid</code> y un <code className="font-mono">meta.json</code>, y
+                comprobarlas con <code className="font-mono">npm run songs:check</code>.
+              </p>
+            </CardContent>
+          </Card>
+        ) : (
+          <ul className="grid gap-4 md:grid-cols-2">
+            {songs.map(({ chart }) => (
+              <li key={chart.slug}>
+                <Link href={`/canciones/${chart.slug}`} className="group block h-full rounded-xl focus-visible:outline-none">
+                  <Card className="h-full transition-colors group-hover:ring-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-primary">
+                    <CardHeader>
+                      <CardTitle className="font-heading text-xl">{chart.title}</CardTitle>
+                      <CardDescription>
+                        {chart.artist ? `${chart.artist} · ` : ""}
+                        {chart.bpm} BPM · {chart.bars} compases · {formatDuration(chart.durationSeconds)}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {chart.description && <p className="text-sm text-muted-foreground">{chart.description}</p>}
+                      <div className="flex flex-wrap gap-1.5">
+                        {chart.tracks.map((track) => (
+                          <InstrumentChip key={track.instrument} track={track} />
+                        ))}
+                      </div>
+                    </CardContent>
+                    <CardFooter className="mt-auto justify-between text-sm">
+                      <span className="text-muted-foreground">
+                        {chart.sections.length} {chart.sections.length === 1 ? "sección" : "secciones"}
+                      </span>
+                      <span className="flex items-center gap-1 font-medium text-primary">
+                        Practicar <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+                      </span>
+                    </CardFooter>
+                  </Card>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
-
-      <Separator />
-
-      <footer className="pb-6 text-sm text-muted-foreground">
-        La API key de Context7 no está en el repositorio. Cloudflare sigue
-        pendiente de OAuth en Cursor Desktop.
-      </footer>
     </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  hint,
-  tone = "ok",
-}: {
-  label: string;
-  value: string;
-  hint: string;
-  tone?: "ok" | "warn" | "info";
-}) {
-  const valueColor =
-    tone === "warn"
-      ? "text-amber-700 dark:text-amber-400"
-      : tone === "info"
-        ? "text-sky-700 dark:text-sky-400"
-        : "text-emerald-700 dark:text-emerald-400";
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardDescription>{label}</CardDescription>
-        <CardTitle className={`text-3xl tabular-nums ${valueColor}`}>{value}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{hint}</p>
-      </CardContent>
-    </Card>
   );
 }

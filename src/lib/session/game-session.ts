@@ -159,6 +159,11 @@ export class GameSession {
     await this.finish(false);
   }
 
+  /** Abandona la partida sin emitir resultado (reiniciar o salir). */
+  async discard(): Promise<void> {
+    await this.finish(false, false);
+  }
+
   setMetronome(enabled: boolean): void {
     this.metronome = enabled;
   }
@@ -254,8 +259,12 @@ export class GameSession {
     for (const listener of this.listeners) listener();
   }
 
-  private async finish(completed: boolean) {
-    if (this.status === "terminada" || this.status === "preparada") return;
+  private async finish(completed: boolean, report = true) {
+    if (this.status === "terminada") return;
+    if (this.status === "preparada") {
+      this.status = "terminada";
+      return;
+    }
     const wasPaused = this.status === "pausada";
     this.status = "terminada";
     if (this.timer) clearInterval(this.timer);
@@ -268,9 +277,8 @@ export class GameSession {
     else this.judge.advance(now - this.maxLatency());
     if (!completed) this.engine.stopAll();
 
-    const result = this.buildResult(completed, now);
     this.emit(null);
-    this.options.onFinish?.(result);
+    if (report) this.options.onFinish?.(this.buildResult(completed, now));
   }
 
   private buildResult(completed: boolean, now: number): AttemptResult {

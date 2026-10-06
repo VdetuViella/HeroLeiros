@@ -1,5 +1,6 @@
 import { INSTRUMENTS, STROKES } from "../chart/instruments";
 import type { Chart, StrokeId } from "../chart/types";
+import { formatDuration } from "../format";
 import { loadSong, SONGS_DIR } from "./load";
 
 export interface SongCheckReport {
@@ -60,9 +61,4 @@ export function formatReport(report: SongCheckReport): string {
   for (const warning of report.warnings) lines.push(`  ⚠ ${warning}`);
   for (const error of report.errors) lines.push(`  ✖ ${error}`);
   return lines.join("\n");
-}
-
-export function formatDuration(seconds: number): string {
-  const total = Math.round(seconds);
-  return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
 }
