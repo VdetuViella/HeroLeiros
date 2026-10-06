@@ -1,0 +1,14 @@
+{
+  "title": "Samba de ensayo",
+  "artist": "HeroLeiros",
+  "description": "Llamada de repinique, groove completo de batucada, un breque y final en unísono. Ideal para probar todos los instrumentos.",
+  "bpm": 100,
+  "timeSignature": [4, 4],
+  "sections": [
+    { "name": "Llamada", "startBar": 1, "endBar": 4 },
+    { "name": "Groove", "startBar": 5, "endBar": 12 },
+    { "name": "Breque", "startBar": 13, "endBar": 16 },
+    { "name": "Groove 2", "startBar": 17, "endBar": 22 },
+    { "name": "Final", "startBar": 23, "endBar": 24 }
+  ]
+}

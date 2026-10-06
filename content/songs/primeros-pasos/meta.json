@@ -1,0 +1,11 @@
+{
+  "title": "Primeros pasos",
+  "artist": "HeroLeiros",
+  "description": "Ritmo lento para empezar: surdos, tamborim, agogô y chocalho entrando poco a poco.",
+  "bpm": 84,
+  "sections": [
+    { "name": "Solo surdos", "startBar": 1, "endBar": 4 },
+    { "name": "Entra el agogô", "startBar": 5, "endBar": 8 },
+    { "name": "Todos", "startBar": 9, "endBar": 12 }
+  ]
+}
