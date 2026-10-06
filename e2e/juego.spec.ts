@@ -17,13 +17,16 @@ test("elige canción, toca con teclado y ve resultados", async ({ page }) => {
   await page.getByTestId("terminar").click();
   await expect(page.getByTestId("resultados")).toBeVisible({ timeout: 15_000 });
   await expect(page.getByTestId("resultados").getByRole("heading", { level: 1 })).toBeVisible();
-  await expect(page.getByText(/precisión/i)).toBeVisible();
+  await expect(page.getByTestId("resultados").getByText("precisión", { exact: true })).toBeVisible();
 });
 
 test("cambia a la vista de partitura durante la partida", async ({ page }) => {
   await startSong(page);
   await page.getByTestId("vista-partitura").click();
-  await expect(page.getByLabel("Leyenda de símbolos")).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: "Leyenda" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: /Compás 1/ })).toBeVisible();
+  await page.getByRole("button", { name: "Leyenda" }).click();
+  await expect(page.getByLabel("Leyenda de símbolos")).toBeVisible();
 });
 
 test("el selector de micrófono está en los ajustes", async ({ page }) => {
