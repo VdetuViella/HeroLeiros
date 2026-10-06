@@ -71,7 +71,11 @@ export function MicLevelMeter({ mic, className, onHit }: MicLevelMeterProps) {
           className={cn("absolute inset-y-0 left-0 rounded-full transition-[width] duration-75", over ? "bg-primary" : "bg-muted-foreground/50")}
           style={{ width: `${toPercent(levelDb)}%` }}
         />
-        <div className="absolute inset-y-0 w-0.5 bg-amber-300" style={{ left: `${toPercent(gateDb)}%` }} title="Umbral de golpe" />
+        <div
+          className="absolute inset-y-0 w-1 -translate-x-1/2 rounded-full bg-white shadow-[0_0_0_1px_rgba(0,0,0,0.6)]"
+          style={{ left: `${toPercent(gateDb)}%` }}
+          title="Umbral de golpe"
+        />
       </div>
       <span className="w-14 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
         {level?.calibrating ? "midiendo" : `${Math.round(levelDb)} dB`}

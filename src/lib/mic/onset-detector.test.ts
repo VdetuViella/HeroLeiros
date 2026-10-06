@@ -202,11 +202,19 @@ describe("OnsetDetector", () => {
       }
     }
     expect(profile).not.toBeNull();
-    // El percentil 90 del nivel por bloque queda un poco por encima del RMS del ruido.
-    expect(profile!.floorDb).toBeGreaterThan(-33);
-    expect(profile!.floorDb).toBeLessThan(-29);
+    expect(profile!.floorDb).toBeGreaterThan(-33.5);
+    expect(profile!.floorDb).toBeLessThan(-30.5);
     expect(detector.currentSettings.noise).toEqual(profile);
     expectMatches(onsets, hits);
+  });
+
+  it("algún golpe suelto durante la medición no dispara el nivel de ruido", () => {
+    const noiseRms = dbToGain(-50);
+    const signal = renderHits({ sampleRate: SR, seconds: 3, hits: clickTrack(120, 5, 0.2, "caixa", 0.8), noiseRms, seed: 4 });
+    const detector = new OnsetDetector(SR);
+    detector.measureNoise(2.9);
+    const profile = detector.process(signal).find((e) => e.type === "noise-profile");
+    expect(profile?.type === "noise-profile" && profile.profile.floorDb).toBeLessThan(-46);
   });
 
   it("no detecta nada mientras mide el ruido", () => {

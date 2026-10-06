@@ -224,8 +224,8 @@
         this.calibrationHopsLeft -= 1;
         if (this.calibrationHopsLeft === 0) {
           const profile = {
-            floorDb: Math.max(SILENCE_DB, percentile(this.calibrationLevels, 90)),
-            flux: percentile(this.calibrationFluxes, 95)
+            floorDb: Math.max(SILENCE_DB, percentile(this.calibrationLevels, 50)),
+            flux: percentile(this.calibrationFluxes, 75)
           };
           this.configure({ noise: profile });
           events.push({ type: "noise-profile", profile });

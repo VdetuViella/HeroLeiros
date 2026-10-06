@@ -2,9 +2,12 @@ import { FFT, hannWindow } from "./fft";
 
 /** Ruido de la sala medido en silencio. */
 export interface NoiseProfile {
-  /** Nivel del ruido (percentil 90 del nivel por bloque), dBFS. */
+  /**
+   * Nivel del ruido (mediana del nivel por bloque), dBFS. La mediana aguanta
+   * que durante la medición se cuele algún golpe o una tos.
+   */
   floorDb: number;
-  /** Flujo espectral típico del ruido (percentil 95). */
+  /** Flujo espectral típico del ruido (percentil 75). */
   flux: number;
 }
 
@@ -275,8 +278,8 @@ export class OnsetDetector {
       this.calibrationHopsLeft -= 1;
       if (this.calibrationHopsLeft === 0) {
         const profile: NoiseProfile = {
-          floorDb: Math.max(SILENCE_DB, percentile(this.calibrationLevels, 90)),
-          flux: percentile(this.calibrationFluxes, 95),
+          floorDb: Math.max(SILENCE_DB, percentile(this.calibrationLevels, 50)),
+          flux: percentile(this.calibrationFluxes, 75),
         };
         this.configure({ noise: profile });
         events.push({ type: "noise-profile", profile });

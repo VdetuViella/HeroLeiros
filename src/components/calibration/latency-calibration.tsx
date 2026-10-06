@@ -23,6 +23,8 @@ const BPM = 90;
 const COUNT_IN = 4;
 const BEATS = 16;
 const MIN_TAPS = 6;
+/** El viaje altavoz → micrófono puede pasar de 250 ms; hasta medio pulso sigue siendo inequívoco. */
+const MIC_MATCH_WINDOW_SECONDS = 30 / BPM;
 
 type Kind = InputSourceKind;
 type Status = "listo" | "preparando" | "midiendo" | "hecho";
@@ -86,10 +88,11 @@ export function LatencyCalibration({ initialKind = "teclado" }: LatencyCalibrati
   const finish = useCallback(() => {
     if (run.current.timer) clearInterval(run.current.timer);
     run.current.timer = null;
+    const usedMic = run.current.release !== null;
     run.current.release?.();
     run.current.release = null;
     setMic(null);
-    const result = estimateLatency(run.current.taps, run.current.clicks);
+    const result = estimateLatency(run.current.taps, run.current.clicks, usedMic ? MIC_MATCH_WINDOW_SECONDS : undefined);
     setEstimate(result && result.used >= MIN_TAPS ? result : null);
     if (result && result.used >= MIN_TAPS) setManual(result.offsetMs);
     setStatus("hecho");

@@ -166,7 +166,7 @@ export function MicSetup({ prefs, onChange, latencyMs }: MicSetupProps) {
             </div>
             <MicLevelMeter mic={monitor.mic} onHit={() => setHits((n) => n + 1)} />
             <p className="text-xs text-muted-foreground">
-              La línea amarilla es el umbral: cada golpe tiene que pasarla. Si se enciende el punto sin tocar, baja la
+              La marca blanca es el umbral: cada golpe tiene que pasarla. Si se enciende el punto sin tocar, baja la
               sensibilidad o mide el ruido.
             </p>
           </div>

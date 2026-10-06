@@ -15,6 +15,9 @@ golpe a golpe.
   instrumento, metrónomo, cuenta atrás de 1 o 2 compases, y bucle A-B por sección o por compases.
 - **Carril Canvas** a 60 fps sincronizado con el reloj de audio, con un carril por golpe (2–4).
 - **Entrada**: teclado (D F J K por defecto, configurable) y pads táctiles multitáctiles.
+- **Micrófono** (fase A): toca tu instrumento de verdad; un AudioWorklet detecta cada golpe y
+  se juzga solo el tiempo. Prueba de nivel, ruido de la sala, sensibilidad, aviso de auriculares
+  y calibración con un clic de prueba. Ver [`docs/microfono.md`](docs/microfono.md).
 - **Juez de tiempos**: Perfecto ±35 ms, Bien ±70 ms, Regular ±120 ms, golpes de más y carril
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
 - **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
@@ -43,6 +46,8 @@ npm run dev        # http://127.0.0.1:43147
 | `npm run songs:check`         | Valida las canciones de `content/songs` (pistas, notas sin mapear, compases, secciones). |
 | `npm run songs:generate`      | Regenera los `.mid` de ejemplo y la plantilla MIDI. |
 | `npm run samples:manifest`    | Escanea `public/samples/` y escribe `manifest.json`. |
+| `npm run worklet:build`       | Regenera `public/worklets/onset-processor.js` (detector del micrófono). |
+| `npm run mic:wav`             | Genera un WAV de golpes para usarlo como micrófono falso en Chrome. |
 
 ## Añadir una canción
 
@@ -70,17 +75,18 @@ src/components/game/song-player.tsx
         ├─ src/lib/session/timeline.ts      plan de la partida: velocidad, cuenta atrás, bucle A-B
         ├─ src/lib/session/game-session.ts  programa audio, recibe golpes, alimenta al juez
         ├─ src/lib/audio/                   AudioEngine (Tone.js), samples + sintetizador
-        ├─ src/lib/input/                   InputSource: teclado, táctil (micrófono en el futuro)
+        ├─ src/lib/input/                   InputSource: teclado, táctil y micrófono
+        ├─ src/lib/mic/                     detector de ataques, AudioWorklet, reloj y ajustes del micro
         ├─ src/lib/judge/                   Judge: ventanas, combo, precisión, estrellas
         └─ src/lib/attempts/                AttemptResult + reportAttempt() (hoy localStorage)
 ```
 
 ### Puntos de extensión
 
-- **Nuevas entradas (micrófono)**: implementa `InputSource` (`src/lib/input/types.ts`) y pásala en
+- **Nuevas entradas**: implementa `InputSource` (`src/lib/input/types.ts`) y pásala en
   `inputs` de `GameSession`. Con `lanesAware: false`, el juez acepta cualquier carril
-  (`Judge.hit(null, t)`), que es la fase A del plan. Los golpes deben venir en el reloj
-  `AudioEngine.heardTime()`. La latencia por fuente se guarda con `saveLatencyMs("microfono", …)`.
+  (`Judge.hit(null, t)`), como hace `MicInputSource`. Los golpes deben venir en el reloj
+  `AudioEngine.heardTime()`. La latencia por fuente se guarda con `saveLatencyMs(kind, …)`.
 - **Partitura**: el `Chart` (`src/lib/chart/types.ts`) trae cada nota con pulso, compás, golpe y
   acento; `GameSession.now()` y `positionAt()` dan la posición actual para un cursor sincronizado.
 - **Backend de intentos**: cada partida terminada produce un `AttemptResult`
