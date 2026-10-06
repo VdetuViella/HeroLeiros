@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Pause, Play, RotateCcw, Square, X } from "lucide-react";
+import { Mic, Pause, Play, RotateCcw, Square, X } from "lucide-react";
 
+import { MicLevelMeter } from "@/components/mic/mic-level-meter";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { INSTRUMENTS } from "@/lib/chart/instruments";
@@ -10,6 +11,7 @@ import { sectionIndexAt } from "@/lib/chart/query";
 import type { Chart } from "@/lib/chart/types";
 import { formatNumber, formatPercent } from "@/lib/format";
 import type { TouchInputSource } from "@/lib/input/touch";
+import type { MicInput } from "@/lib/mic/mic-input";
 import type { GameSession } from "@/lib/session/game-session";
 import type { SessionPosition } from "@/lib/session/timeline";
 import { positionAt } from "@/lib/session/timeline";
@@ -22,6 +24,8 @@ interface GameViewProps {
   chart: Chart;
   keyLabels: string[];
   touch: TouchInputSource;
+  /** Si se juega con micrófono, sustituye a los pads táctiles. */
+  mic?: MicInput | null;
   onRestart: () => void;
   onExit: () => void;
 }
@@ -38,7 +42,7 @@ function usePosition(session: GameSession): SessionPosition & { now: number } {
   return state;
 }
 
-export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }: GameViewProps) {
+export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onExit }: GameViewProps) {
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const position = usePosition(session);
   const { plan, track } = session;
@@ -168,7 +172,17 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
       </div>
 
       <div className="mx-auto w-full max-w-[520px]">
-        <TouchPads instrument={track.instrument} lanes={lanes} keyLabels={keyLabels} source={touch} />
+        {mic ? (
+          <div className="space-y-1.5 rounded-2xl border border-border/60 bg-card px-4 py-3">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <Mic className="size-4 text-primary" /> Micrófono activo
+              <span className="ml-auto text-xs font-normal text-muted-foreground">Cualquier golpe vale: cuenta el tiempo</span>
+            </p>
+            <MicLevelMeter mic={mic} />
+          </div>
+        ) : (
+          <TouchPads instrument={track.instrument} lanes={lanes} keyLabels={keyLabels} source={touch} />
+        )}
       </div>
     </div>
   );

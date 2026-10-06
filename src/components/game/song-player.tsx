@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { useMicPreferences } from "@/components/mic/use-mic-preferences";
 import { AudioEngine, type TrackMix } from "@/lib/audio/engine";
 import { bestLocalAttempt, reportAttempt } from "@/lib/attempts/reporter";
 import type { AttemptResult } from "@/lib/attempts/types";
@@ -9,7 +10,10 @@ import { getTrack } from "@/lib/chart/query";
 import type { Chart, InstrumentId } from "@/lib/chart/types";
 import { KeyboardInputSource } from "@/lib/input/keyboard";
 import { defaultKeymap, keyLabel } from "@/lib/input/keymap";
+import { MicInputSource } from "@/lib/input/microphone";
 import { TouchInputSource } from "@/lib/input/touch";
+import { MicInput, toMicError } from "@/lib/mic/mic-input";
+import { detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
 import { GameSession } from "@/lib/session/game-session";
 import {
   defaultPracticeSettings,
@@ -39,6 +43,12 @@ interface Running {
   session: GameSession;
   touch: TouchInputSource;
   keyLabels: string[];
+  mic: MicInput | null;
+}
+
+function releaseRunning(running: Running | null): Promise<void> {
+  if (!running) return Promise.resolve();
+  return running.session.discard().finally(() => running.mic?.close());
 }
 
 export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
@@ -46,7 +56,8 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
   const [settings, setSettings] = useState<PracticeSettings>(() => defaultPracticeSettings(chart));
   const [mix, setMix] = useState<MixState>({});
   const [keymaps, setKeymaps] = useState<Record<number, string[]>>({});
-  const [latencyMs, setLatencyMs] = useState(0);
+  const [latencyMs, setLatencyMs] = useState<Record<InputMethod, number>>({ teclado: 0, microfono: 0 });
+  const { prefs: micPrefs, updatePrefs: updateMicPrefs, method: inputMethod, updateMethod: updateInputMethod } = useMicPreferences();
   const [best, setBest] = useState<Partial<Record<InstrumentId, AttemptResult>>>({});
   const [running, setRunning] = useState<Running | null>(null);
   const [result, setResult] = useState<AttemptResult | null>(null);
@@ -73,7 +84,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
     setSettings(sanitizeSettings(chart, readLocal<Partial<PracticeSettings> | null>(`ajustes:${chart.slug}`, null)));
     setMix(readLocal<MixState>(`mezcla:${chart.slug}`, {}));
     setKeymaps(Object.fromEntries([1, 2, 3, 4].map((n) => [n, loadKeymap(n)])));
-    setLatencyMs(loadLatencyMs("teclado"));
+    setLatencyMs({ teclado: loadLatencyMs("teclado"), microfono: loadLatencyMs("microfono") });
     refreshBest();
   }, [chart, refreshBest]);
 
@@ -85,7 +96,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
 
   useEffect(
     () => () => {
-      void runningRef.current?.session.discard();
+      void releaseRunning(runningRef.current);
       void engineRef.current?.dispose();
     },
     [],
@@ -147,12 +158,26 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       }
     }
 
-    await runningRef.current?.session.discard();
+    await releaseRunning(runningRef.current);
+    runningRef.current = null;
     setPhase("preparando");
+    const useMic = inputMethod === "microfono";
+    let mic: MicInput | null = null;
     try {
       await engine.resume();
       await engine.load();
       for (const t of chart.tracks) engine.setMix(t.instrument, mix[t.instrument] ?? {});
+
+      if (useMic) {
+        try {
+          // En el mismo AudioContext que el acompañamiento, para compartir reloj.
+          mic = await MicInput.open(engine.context, { deviceId: micPrefs.deviceId, settings: detectorSettingsFrom(micPrefs) });
+        } catch (cause) {
+          setError(toMicError(cause).message);
+          setPhase("ajustes");
+          return;
+        }
+      }
 
       const clock = (performanceTime: number) => engine.heardTime(performanceTime);
       const touch = new TouchInputSource(clock);
@@ -162,12 +187,12 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         plan: { rate: settings.rate, loop: settings.loop, countInBars: settings.countInBars, ...resolveRange(chart, settings) },
         metronome: settings.metronome,
         guide: settings.guide,
-        hitSounds: settings.hitSounds,
-        latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil") },
-        inputs: [new KeyboardInputSource(keymap, clock), touch],
+        hitSounds: useMic ? false : settings.hitSounds,
+        latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil"), microfono: loadLatencyMs("microfono") },
+        inputs: mic ? [new MicInputSource(mic, engine)] : [new KeyboardInputSource(keymap, clock), touch],
         onFinish: handleFinish,
       });
-      const next: Running = { session, touch, keyLabels: keymap.map(keyLabel) };
+      const next: Running = { session, touch, keyLabels: mic ? keymap.map(() => "") : keymap.map(keyLabel), mic };
       runningRef.current = next;
       setRunning(next);
       setResult(null);
@@ -175,13 +200,14 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       await session.start();
     } catch (cause) {
       console.error(cause);
+      mic?.close();
       setError("No se pudo preparar el audio. Recarga la página e inténtalo de nuevo.");
       setPhase("ajustes");
     }
-  }, [chart, settings, mix, keymap, handleFinish]);
+  }, [chart, settings, mix, keymap, handleFinish, inputMethod, micPrefs]);
 
   const exitToSettings = useCallback(async () => {
-    await runningRef.current?.session.discard();
+    await releaseRunning(runningRef.current);
     runningRef.current = null;
     setRunning(null);
     setPhase("ajustes");
@@ -196,6 +222,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         chart={chart}
         keyLabels={keyLabels}
         touch={running.touch}
+        mic={running.mic}
         onRestart={() => void play()}
         onExit={() => void exitToSettings()}
       />
@@ -215,11 +242,15 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       onMixChange={updateMix}
       keymap={keymap}
       onKeymapChange={updateKeymap}
-      latencyMs={latencyMs}
+      latencyMs={latencyMs[inputMethod]}
       best={best}
       preparing={phase === "preparando"}
       error={error}
       onPlay={() => void play()}
+      inputMethod={inputMethod}
+      onInputMethodChange={updateInputMethod}
+      micPrefs={micPrefs}
+      onMicPrefsChange={updateMicPrefs}
     />
   );
 }
