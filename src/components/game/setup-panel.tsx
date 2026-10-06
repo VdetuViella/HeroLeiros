@@ -15,7 +15,7 @@ import type { TrackMix } from "@/lib/audio/engine";
 import type { AttemptResult } from "@/lib/attempts/types";
 import { INSTRUMENTS, STROKES, strokeLabel } from "@/lib/chart/instruments";
 import { getTrack } from "@/lib/chart/query";
-import type { Chart, InstrumentId } from "@/lib/chart/types";
+import type { Chart, ChartTrack, InstrumentId } from "@/lib/chart/types";
 import { formatDuration, formatPercent } from "@/lib/format";
 import type { GuideMode } from "@/lib/session/game-session";
 import { MAX_RATE, MIN_RATE, resolveRange, type PracticeSettings } from "@/lib/session/practice";
@@ -46,7 +46,7 @@ const GUIDE_OPTIONS: { value: GuideMode; label: string }[] = [
 ];
 
 export function SetupPanel(props: SetupPanelProps) {
-  const { chart, settings, onSettingsChange, best, preparing, error, onPlay } = props;
+  const { chart, settings, onSettingsChange, best } = props;
   const track = getTrack(chart, settings.instrument) ?? chart.tracks[0];
   const range = resolveRange(chart, settings);
   const rangeBeats = (range.endBar - range.startBar + 1) * chart.beatsPerBar;
@@ -264,6 +264,8 @@ export function SetupPanel(props: SetupPanelProps) {
             </CardContent>
           </Card>
 
+          <PlayBar {...props} track={track} className="hidden lg:block" />
+
           <Card size="sm">
             <CardHeader>
               <CardTitle>Mezcla del grupo</CardTitle>
@@ -273,27 +275,44 @@ export function SetupPanel(props: SetupPanelProps) {
               <MixerPanel chart={chart} instrument={settings.instrument} mix={props.mix} onChange={props.onMixChange} />
             </CardContent>
           </Card>
-
-          <div className="sticky bottom-3 z-10 space-y-2 rounded-2xl border border-border/60 bg-background/90 p-3 backdrop-blur">
-            {error && (
-              <p className="flex items-start gap-2 text-sm text-destructive" role="alert">
-                <AlertCircle className="mt-0.5 size-4 shrink-0" /> {error}
-              </p>
-            )}
-            <Button size="lg" className="h-12 w-full text-base" onClick={onPlay} disabled={preparing}>
-              {preparing ? <Loader2 className="animate-spin" /> : <Play />}
-              {preparing ? "Preparando sonidos…" : `Tocar ${INSTRUMENTS[track.instrument].name}`}
-            </Button>
-            <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
-              <Timer className="size-3.5" />
-              Latencia calibrada: {props.latencyMs} ms ·{" "}
-              <Link href="/calibracion" className="underline underline-offset-2 hover:text-foreground">
-                calibrar
-              </Link>
-            </p>
-          </div>
         </section>
       </div>
+
+      <PlayBar
+        {...props}
+        track={track}
+        className="sticky bottom-3 z-10 rounded-2xl border border-border/60 bg-background/90 p-3 backdrop-blur lg:hidden"
+      />
+    </div>
+  );
+}
+
+function PlayBar({
+  track,
+  latencyMs,
+  preparing,
+  error,
+  onPlay,
+  className,
+}: Pick<SetupPanelProps, "latencyMs" | "preparing" | "error" | "onPlay"> & { track: ChartTrack; className?: string }) {
+  return (
+    <div className={cn("space-y-2", className)}>
+      {error && (
+        <p className="flex items-start gap-2 text-sm text-destructive" role="alert">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" /> {error}
+        </p>
+      )}
+      <Button size="lg" className="h-12 w-full text-base" onClick={onPlay} disabled={preparing}>
+        {preparing ? <Loader2 className="animate-spin" /> : <Play />}
+        {preparing ? "Preparando sonidos…" : `Tocar ${INSTRUMENTS[track.instrument].name}`}
+      </Button>
+      <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <Timer className="size-3.5" />
+        Latencia calibrada: {latencyMs} ms ·{" "}
+        <Link href="/calibracion" className="underline underline-offset-2 hover:text-foreground">
+          calibrar
+        </Link>
+      </p>
     </div>
   );
 }

@@ -46,6 +46,10 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
   const paused = status === "pausada";
 
   useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
+
+  useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.code !== "Escape") return;
       event.preventDefault();
@@ -91,7 +95,7 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
             <span className="hidden sm:inline">{paused ? "Continuar" : "Pausa"}</span>
             <kbd className="ml-1 hidden rounded bg-background/60 px-1 text-[10px] text-muted-foreground lg:inline">Esc</kbd>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void session.stop()}>
+          <Button variant="outline" size="sm" onClick={() => void session.stop()} aria-label="Terminar">
             <Square /> <span className="hidden sm:inline">Terminar</span>
           </Button>
         </div>
@@ -101,11 +105,11 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
         <aside className="order-2 grid grid-cols-4 gap-2 lg:order-1 lg:grid-cols-1 lg:content-start">
           <Stat label="Puntos" value={formatNumber(stats.score)} />
           <Stat label="Combo" value={String(stats.combo)} highlight={stats.combo >= 10} />
-          <Stat label="Multiplicador" value={`×${stats.multiplier}`} highlight={stats.multiplier > 1} />
+          <Stat label="Multiplicador" shortLabel="Mult." value={`×${stats.multiplier}`} highlight={stats.multiplier > 1} />
           <Stat label="Precisión" value={stats.judgedNotes + stats.counts.extra > 0 ? formatPercent(stats.accuracy) : "—"} />
         </aside>
 
-        <div className="relative order-1 flex min-h-[52vh] flex-col overflow-hidden rounded-2xl border border-border/60 bg-black/30 lg:order-2 lg:min-h-[64vh]">
+        <div className="relative order-1 flex min-h-[44vh] flex-col overflow-hidden rounded-2xl border border-border/60 bg-black/30 lg:order-2 lg:min-h-[64vh]">
           <Highway session={session} lanes={lanes} keyLabels={keyLabels} />
           {position.countIn && status === "tocando" && (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
@@ -137,14 +141,20 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
         </div>
 
         <aside className="order-3 flex flex-col gap-2 text-sm lg:content-start">
-          <div className="rounded-xl border border-border/60 bg-card p-3">
-            <p className="text-xs text-muted-foreground">Sección</p>
-            <p className="font-medium">{position.countIn ? "Cuenta atrás" : sectionName}</p>
-            <p className="mt-1 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-border/60 bg-card px-3 py-2 lg:p-3">
+            <p className="hidden text-xs text-muted-foreground lg:block">Sección</p>
+            <p className="flex items-baseline justify-between gap-2 lg:block">
+              <span className="font-medium">{position.countIn ? "Cuenta atrás" : sectionName}</span>
+              <span className="text-xs text-muted-foreground lg:hidden">
+                c. {position.countIn ? plan.startBar : bar}
+                {plan.loop && !position.countIn ? ` · vuelta ${position.pass + 1}` : ""}
+              </span>
+            </p>
+            <p className="mt-1 hidden text-xs text-muted-foreground lg:block">
               Compás {position.countIn ? plan.startBar : bar}
               {plan.loop && !position.countIn ? ` · vuelta ${position.pass + 1}` : ""}
             </p>
-            <Progress value={Math.min(100, Math.max(0, progress))} className="mt-3" aria-label="Progreso del tramo" />
+            <Progress value={Math.min(100, Math.max(0, progress))} className="mt-2 lg:mt-3" aria-label="Progreso del tramo" />
           </div>
           <div className="hidden grid-cols-3 gap-2 lg:grid">
             <MiniCount label="Perfecto" value={stats.counts.perfecto} className="text-amber-400" />
@@ -164,10 +174,23 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+function Stat({
+  label,
+  shortLabel,
+  value,
+  highlight,
+}: {
+  label: string;
+  shortLabel?: string;
+  value: string;
+  highlight?: boolean;
+}) {
   return (
-    <div className="rounded-xl border border-border/60 bg-card px-3 py-2">
-      <p className="text-[11px] text-muted-foreground uppercase">{label}</p>
+    <div className="rounded-xl border border-border/60 bg-card px-2.5 py-1.5 lg:px-3 lg:py-2">
+      <p className="truncate text-[11px] text-muted-foreground uppercase">
+        <span className={shortLabel ? "hidden lg:inline" : undefined}>{label}</span>
+        {shortLabel && <span className="lg:hidden">{shortLabel}</span>}
+      </p>
       <p className={`font-heading text-xl font-bold tabular-nums lg:text-3xl ${highlight ? "text-primary" : ""}`}>{value}</p>
     </div>
   );

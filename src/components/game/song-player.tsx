@@ -53,7 +53,6 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
   const [error, setError] = useState<string | null>(null);
   const engineRef = useRef<AudioEngine | null>(null);
   const runningRef = useRef<Running | null>(null);
-  const hydrated = useRef(false);
 
   const track = getTrack(chart, settings.instrument) ?? chart.tracks[0];
   const laneCount = track.lanes.length;
@@ -76,15 +75,9 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
     setKeymaps(Object.fromEntries([1, 2, 3, 4].map((n) => [n, loadKeymap(n)])));
     setLatencyMs(loadLatencyMs("teclado"));
     refreshBest();
-    hydrated.current = true;
   }, [chart, refreshBest]);
 
   useEffect(() => {
-    if (hydrated.current) writeLocal(`ajustes:${chart.slug}`, settings);
-  }, [chart.slug, settings]);
-
-  useEffect(() => {
-    if (hydrated.current) writeLocal(`mezcla:${chart.slug}`, mix);
     const engine = engineRef.current;
     if (!engine) return;
     for (const t of chart.tracks) engine.setMix(t.instrument, mix[t.instrument] ?? {});
@@ -98,16 +91,30 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
     [],
   );
 
-  const updateSettings = useCallback((patch: Partial<PracticeSettings>) => {
-    setSettings((current) => ({ ...current, ...patch }));
-  }, []);
+  const updateSettings = useCallback(
+    (patch: Partial<PracticeSettings>) => {
+      setSettings((current) => {
+        const next = { ...current, ...patch };
+        writeLocal(`ajustes:${chart.slug}`, next);
+        return next;
+      });
+    },
+    [chart.slug],
+  );
 
-  const updateMix = useCallback((instrument: InstrumentId, patch: Partial<TrackMix>) => {
-    setMix((current) => ({
-      ...current,
-      [instrument]: { volumeDb: 0, mute: false, solo: false, ...current[instrument], ...patch },
-    }));
-  }, []);
+  const updateMix = useCallback(
+    (instrument: InstrumentId, patch: Partial<TrackMix>) => {
+      setMix((current) => {
+        const next = {
+          ...current,
+          [instrument]: { volumeDb: 0, mute: false, solo: false, ...current[instrument], ...patch },
+        };
+        writeLocal(`mezcla:${chart.slug}`, next);
+        return next;
+      });
+    },
+    [chart.slug],
+  );
 
   const updateKeymap = useCallback(
     (next: string[]) => {

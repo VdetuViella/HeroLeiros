@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { ListMusic, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -45,12 +46,16 @@ interface ResultsViewProps {
 }
 
 export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) {
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, []);
+
   const hint = timingHint(result.meanOffsetMs);
   const worst = [...result.sections].filter((s) => s.notes > 0).sort((a, b) => a.accuracy - b.accuracy)[0];
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6">
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden py-0">
         <div className="bg-gradient-to-br from-amber-500/20 via-fuchsia-500/10 to-transparent p-6 sm:p-8">
           <p className="text-sm text-muted-foreground">
             {result.songTitle} · {INSTRUMENTS[result.instrument].name} · {Math.round(result.speed * 100)} %
@@ -72,7 +77,7 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
               <dd className="font-semibold tabular-nums">{result.notesJudged}</dd>
               {result.loop && (
                 <>
-                  <dt className="text-muted-foreground">Vueltas</dt>
+                  <dt className="text-muted-foreground">Vueltas completas</dt>
                   <dd className="font-semibold tabular-nums">{result.passes}</dd>
                 </>
               )}
