@@ -1,21 +1,51 @@
 "use client";
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
-import { Pause, Play, RotateCcw, Square, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import dynamic from "next/dynamic";
+import { ChevronsDown, Columns2, Loader2, Music, Pause, Play, Repeat, RotateCcw, Square, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { INSTRUMENTS } from "@/lib/chart/instruments";
 import { sectionIndexAt } from "@/lib/chart/query";
 import type { Chart } from "@/lib/chart/types";
 import { formatNumber, formatPercent } from "@/lib/format";
 import type { TouchInputSource } from "@/lib/input/touch";
+import type { BarRange } from "@/lib/notation/layout";
 import type { GameSession } from "@/lib/session/game-session";
 import type { SessionPosition } from "@/lib/session/timeline";
 import { positionAt } from "@/lib/session/timeline";
+import { readLocal, writeLocal } from "@/lib/settings/local";
+import { cn } from "@/lib/utils";
 
 import { Highway } from "./highway";
 import { TouchPads } from "./touch-pads";
+
+// VexFlow solo hace falta al abrir la partitura y necesita el DOM.
+const ScoreView = dynamic(() => import("@/components/notation/score-view"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex min-h-[30vh] flex-1 items-center justify-center gap-2 rounded-2xl bg-[#f6f1e7] text-sm text-stone-600 lg:min-h-[64vh]">
+      <Loader2 className="size-4 animate-spin" /> Cargando partitura…
+    </div>
+  ),
+});
+
+export type GameViewMode = "carril" | "partitura" | "dividida";
+
+const VIEW_MODES: { value: GameViewMode; label: string; icon: typeof Music }[] = [
+  { value: "carril", label: "Carril", icon: ChevronsDown },
+  { value: "partitura", label: "Partitura", icon: Music },
+  { value: "dividida", label: "Dividida", icon: Columns2 },
+];
+
+const VIEW_MODE_KEY = "vista-juego";
+
+function loadViewMode(): GameViewMode {
+  const stored = readLocal<string>(VIEW_MODE_KEY, "carril");
+  return VIEW_MODES.some((m) => m.value === stored) ? (stored as GameViewMode) : "carril";
+}
 
 interface GameViewProps {
   session: GameSession;
@@ -24,6 +54,8 @@ interface GameViewProps {
   touch: TouchInputSource;
   onRestart: () => void;
   onExit: () => void;
+  /** Reinicia la partida repitiendo en bucle los compases elegidos en la partitura. */
+  onLoopBars?: (range: BarRange) => void;
 }
 
 function usePosition(session: GameSession): SessionPosition & { now: number } {
@@ -38,12 +70,30 @@ function usePosition(session: GameSession): SessionPosition & { now: number } {
   return state;
 }
 
-export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }: GameViewProps) {
+export function GameView({ session, chart, keyLabels, touch, onRestart, onExit, onLoopBars }: GameViewProps) {
   const snapshot = useSyncExternalStore(session.subscribe, session.getSnapshot, session.getSnapshot);
   const position = usePosition(session);
   const { plan, track } = session;
   const { stats, status } = snapshot;
   const paused = status === "pausada";
+  const [mode, setMode] = useState<GameViewMode>(loadViewMode);
+  // La selección pertenece a una partida: al reiniciar con el bucle nuevo desaparece.
+  const [picked, setPicked] = useState<{ session: GameSession; range: BarRange | null } | null>(null);
+  const selection = picked?.session === session ? picked.range : null;
+  const setSelection = useCallback((range: BarRange | null) => setPicked({ session, range }), [session]);
+  const wide = mode !== "carril";
+
+  const changeMode = (next: GameViewMode) => {
+    setMode(next);
+    writeLocal(VIEW_MODE_KEY, next);
+  };
+
+  const readBeat = useCallback(() => {
+    if (session.state === "preparada") return null;
+    return Math.max(session.plan.startBeat, positionAt(session.plan, session.now()).beat);
+  }, [session]);
+
+  const activeRange = useMemo(() => ({ startBar: plan.startBar, endBar: plan.endBar }), [plan]);
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
@@ -85,6 +135,20 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
           </p>
         </div>
         <div className="flex items-center gap-1.5">
+          <ToggleGroup
+            variant="outline"
+            size="sm"
+            value={[mode]}
+            onValueChange={(value) => value[0] && changeMode(value[0] as GameViewMode)}
+            aria-label="Vista"
+          >
+            {VIEW_MODES.map(({ value, label, icon: Icon }) => (
+              <ToggleGroupItem key={value} value={value} aria-label={label} title={label}>
+                <Icon />
+                <span className="hidden md:inline">{label}</span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
           <Button
             variant="secondary"
             size="sm"
@@ -101,16 +165,83 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
         </div>
       </div>
 
-      <div className="grid flex-1 gap-3 lg:grid-cols-[1fr_minmax(0,520px)_1fr]">
-        <aside className="order-2 grid grid-cols-4 gap-2 lg:order-1 lg:grid-cols-1 lg:content-start">
+      <div
+        className={cn(
+          "grid flex-1 gap-3",
+          wide ? "lg:grid-cols-[200px_minmax(0,1fr)] lg:grid-rows-[auto_1fr]" : "lg:grid-cols-[1fr_minmax(0,520px)_1fr]",
+        )}
+      >
+        <aside
+          className={cn(
+            "order-2 grid grid-cols-4 gap-2 lg:order-1 lg:grid-cols-1 lg:content-start",
+            wide && "lg:col-start-1 lg:row-start-1",
+          )}
+        >
           <Stat label="Puntos" value={formatNumber(stats.score)} />
           <Stat label="Combo" value={String(stats.combo)} highlight={stats.combo >= 10} />
           <Stat label="Multiplicador" shortLabel="Mult." value={`×${stats.multiplier}`} highlight={stats.multiplier > 1} />
           <Stat label="Precisión" value={stats.judgedNotes + stats.counts.extra > 0 ? formatPercent(stats.accuracy) : "—"} />
         </aside>
 
-        <div className="relative order-1 flex min-h-[44vh] flex-col overflow-hidden rounded-2xl border border-border/60 bg-black/30 lg:order-2 lg:min-h-[64vh]">
-          <Highway session={session} lanes={lanes} keyLabels={keyLabels} />
+        <div
+          className={cn(
+            "relative order-1 flex flex-col overflow-hidden rounded-2xl",
+            wide ? "lg:col-start-2 lg:row-span-2 lg:row-start-1" : "lg:order-2",
+          )}
+        >
+          <div className={cn("flex min-h-0 flex-1 gap-3", mode === "dividida" ? "flex-col lg:flex-row" : "flex-col")}>
+            {mode !== "partitura" && (
+              <div
+                className={cn(
+                  "relative overflow-hidden rounded-2xl border border-border/60 bg-black/30",
+                  mode === "carril"
+                    ? "min-h-[44vh] flex-1 lg:min-h-[64vh]"
+                    : "order-2 h-[34vh] shrink-0 lg:order-1 lg:h-auto lg:min-h-[64vh] lg:w-[340px]",
+                )}
+              >
+                <Highway session={session} lanes={lanes} keyLabels={keyLabels} />
+              </div>
+            )}
+            {mode !== "carril" && (
+              <ScoreView
+                chart={chart}
+                track={track}
+                readBeat={readBeat}
+                activeRange={activeRange}
+                selection={selection}
+                onSelectionChange={setSelection}
+                className={cn(
+                  mode === "partitura"
+                    ? "h-[54vh] lg:h-[64vh]"
+                    : "order-1 h-[30vh] shrink-0 lg:order-2 lg:h-auto lg:min-h-[64vh] lg:flex-1",
+                )}
+              />
+            )}
+          </div>
+          {selection && wide && (
+            <div className="absolute inset-x-2 bottom-2 z-10 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
+              <p className="text-sm">
+                <span className="font-medium">
+                  {selection.startBar === selection.endBar
+                    ? `Compás ${selection.startBar}`
+                    : `Compases ${selection.startBar}–${selection.endBar}`}
+                </span>
+                {selection.startBar === selection.endBar && (
+                  <span className="block text-xs text-muted-foreground">Toca otro compás para cerrar el tramo.</span>
+                )}
+              </p>
+              <div className="flex items-center gap-1.5">
+                {onLoopBars && (
+                  <Button size="sm" onClick={() => onLoopBars(selection)}>
+                    <Repeat /> Practicar en bucle
+                  </Button>
+                )}
+                <Button size="icon-sm" variant="ghost" onClick={() => setSelection(null)} aria-label="Quitar selección">
+                  <X />
+                </Button>
+              </div>
+            </div>
+          )}
           {position.countIn && status === "tocando" && (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
               <span key={position.countInRemaining} className="font-heading text-8xl font-extrabold text-primary drop-shadow-lg animate-in zoom-in-50 fade-in duration-200">
@@ -140,7 +271,12 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit }
           )}
         </div>
 
-        <aside className="order-3 flex flex-col gap-2 text-sm lg:content-start">
+        <aside
+          className={cn(
+            "order-3 flex flex-col gap-2 text-sm lg:content-start",
+            wide && "hidden lg:col-start-1 lg:row-start-2 lg:flex",
+          )}
+        >
           <div className="rounded-xl border border-border/60 bg-card px-3 py-2 lg:p-3">
             <p className="hidden text-xs text-muted-foreground lg:block">Sección</p>
             <p className="flex items-baseline justify-between gap-2 lg:block">

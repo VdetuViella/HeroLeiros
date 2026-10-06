@@ -1,0 +1,12 @@
+{
+  "title": "Ijexá de ensayo",
+  "artist": "HeroLeiros",
+  "description": "Pasa de semicorcheas a tresillos y vuelve: sirve para practicar la lectura de tresillos en la partitura.",
+  "bpm": 90,
+  "timeSignature": [4, 4],
+  "sections": [
+    { "name": "Binario", "startBar": 1, "endBar": 2 },
+    { "name": "Tresillos", "startBar": 3, "endBar": 6 },
+    { "name": "Vuelta y final", "startBar": 7, "endBar": 8 }
+  ]
+}

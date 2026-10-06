@@ -3,7 +3,8 @@
  *
  *   npm run songs:generate
  *
- * Cada patrón es un compás de 4/4 en semicorcheas (16 pasos):
+ * Cada patrón es un compás de 4/4 en semicorcheas (16 pasos) o en tresillos
+ * de corchea (12 pasos):
  *   x abierto (36) · o apagado (37) · r aro (38) · s slap (39) · X acento (40)
  *   h agudo (60) · l grave (61) · . silencio
  */
@@ -13,7 +14,8 @@ import { dirname, join } from "node:path";
 import { Midi } from "@tonejs/midi";
 
 const PPQ = 480;
-const STEP = PPQ / 4;
+const BAR_TICKS = 4 * PPQ;
+const STEPS_PER_BAR = [16, 12];
 
 const NOTE: Record<string, { midi: number; velocity: number }> = {
   x: { midi: 36, velocity: 92 },
@@ -58,15 +60,18 @@ function writeSong(spec: SongSpec, root: string) {
     track.channel = 9;
     bars.forEach((pattern, barIndex) => {
       if (!pattern) return;
-      if (pattern.length !== 16) throw new Error(`${spec.slug}/${name} compás ${barIndex + 1}: «${pattern}»`);
-      [...pattern].forEach((char, step) => {
+      if (!STEPS_PER_BAR.includes(pattern.length)) {
+        throw new Error(`${spec.slug}/${name} compás ${barIndex + 1}: «${pattern}»`);
+      }
+      const step = BAR_TICKS / pattern.length;
+      [...pattern].forEach((char, index) => {
         if (char === ".") return;
         const note = NOTE[char];
         if (!note) throw new Error(`Carácter desconocido «${char}» en ${name}`);
         track.addNote({
           midi: note.midi,
-          ticks: barIndex * 16 * STEP + step * STEP,
-          durationTicks: STEP / 2,
+          ticks: barIndex * BAR_TICKS + index * step,
+          durationTicks: step / 2,
           velocity: note.velocity / 127,
         });
       });
@@ -169,6 +174,24 @@ const primerosPasos: SongSpec = {
   },
 };
 
+const IJEXA_CAIXA = "X.oX.oX.oXro";
+const IJEXA_REPI = "x.ox.sx.ox.s";
+
+const ijexaDeEnsayo: SongSpec = {
+  slug: "ijexa-de-ensayo",
+  bpm: 90,
+  bars: 8,
+  markers: [],
+  tracks: {
+    "Surdo 1": repeat("o...x...o...x...", 8),
+    "Surdo 2": [...repeat("x...o...x...o...", 2), ...repeat("x.....o.....x.o.", 4), "x...o...x...o...", "x..............."],
+    Caixa: ["x.x.x.x.x.x.X.X.", "X.oxX.oxX.oxXrox", ...repeat(IJEXA_CAIXA, 4), "X.oxX.oxX.oxXrox", "X..............."],
+    Repinique: ["x.ox.sx.x.ox.sr.", "x..x..x.x.x.X...", IJEXA_REPI, "x.ox.sx.x.ox.sr.", IJEXA_REPI, "xxx..xxx..xx", "x.ox.sx.x.ox.sr.", "X..............."],
+    Agogo: [...repeat("h.hl.l.hh.hl.l..", 2), ...repeat("h.hl.lh.hl.l", 4), "h.hl.l.hh.hl.l..", "h..............."],
+    Chocalho: [...repeat("xoxoxoxoxoxoxoxo", 2), ...repeat("xoxxoxxoxxox", 4), "xoxoxoxoxoxoxoxo", "x..............."],
+  },
+};
+
 function writeTemplate(root: string) {
   const midi = new Midi();
   midi.header.setTempo(100);
@@ -189,4 +212,5 @@ function writeTemplate(root: string) {
 const root = process.cwd();
 writeSong(sambaDeEnsayo, root);
 writeSong(primerosPasos, root);
+writeSong(ijexaDeEnsayo, root);
 writeTemplate(root);

@@ -10,6 +10,7 @@ import type { Chart, InstrumentId } from "@/lib/chart/types";
 import { KeyboardInputSource } from "@/lib/input/keyboard";
 import { defaultKeymap, keyLabel } from "@/lib/input/keymap";
 import { TouchInputSource } from "@/lib/input/touch";
+import type { BarRange } from "@/lib/notation/layout";
 import { GameSession } from "@/lib/session/game-session";
 import {
   defaultPracticeSettings,
@@ -134,7 +135,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
     [onAttemptComplete, refreshBest],
   );
 
-  const play = useCallback(async () => {
+  const play = useCallback(async (current: PracticeSettings = settings) => {
     setError(null);
     let engine = engineRef.current;
     if (!engine) {
@@ -158,11 +159,11 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       const touch = new TouchInputSource(clock);
       const session = new GameSession(engine, {
         chart,
-        instrument: settings.instrument,
-        plan: { rate: settings.rate, loop: settings.loop, countInBars: settings.countInBars, ...resolveRange(chart, settings) },
-        metronome: settings.metronome,
-        guide: settings.guide,
-        hitSounds: settings.hitSounds,
+        instrument: current.instrument,
+        plan: { rate: current.rate, loop: current.loop, countInBars: current.countInBars, ...resolveRange(chart, current) },
+        metronome: current.metronome,
+        guide: current.guide,
+        hitSounds: current.hitSounds,
         latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil") },
         inputs: [new KeyboardInputSource(keymap, clock), touch],
         onFinish: handleFinish,
@@ -179,6 +180,15 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       setPhase("ajustes");
     }
   }, [chart, settings, mix, keymap, handleFinish]);
+
+  const loopBars = useCallback(
+    (range: BarRange) => {
+      const next: PracticeSettings = { ...settings, rangeMode: "compases", ...range, loop: true };
+      updateSettings(next);
+      void play(next);
+    },
+    [settings, updateSettings, play],
+  );
 
   const exitToSettings = useCallback(async () => {
     await runningRef.current?.session.discard();
@@ -198,6 +208,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         touch={running.touch}
         onRestart={() => void play()}
         onExit={() => void exitToSettings()}
+        onLoopBars={loopBars}
       />
     );
   }
