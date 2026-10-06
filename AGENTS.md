@@ -13,7 +13,8 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 Juego de ritmo para ensayar batucada. Toda la UI y la documentación van en español.
 
 - Gestor de paquetes: npm (`package-lock.json`). No uses pnpm/yarn.
-- Comprobaciones antes de terminar: `npm run typecheck`, `npm run lint`, `npm test`, `npm run songs:check`.
+- Comprobaciones antes de terminar: `npm run typecheck`, `npm run lint`, `npm test`, `npm run songs:check`,
+  `npm run test:e2e`. `npm test` es Vitest; Playwright es `npm run test:e2e` (reutiliza el dev server del puerto 43147).
 - La lógica pura (parser, juez, línea de tiempo, síntesis) vive en `src/lib/` con imports relativos
   para que la usen también los scripts de `scripts/` con `tsx`. Sus tests van junto al código (`*.test.ts`).
 - Convención MIDI: `docs/convencion-midi.md`. Las canciones de ejemplo se regeneran con `npm run songs:generate`.
@@ -35,3 +36,7 @@ Juego de ritmo para ensayar batucada. Toda la UI y la documentación van en espa
   `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=/tmp/mic.wav`
   (ver `docs/microfono.md`). Si tocas `src/lib/mic/onset-detector.ts` o el worklet, ejecuta
   `npm run worklet:build`: un test compara `public/worklets/onset-processor.js` con el código fuente.
+- PWA: `src/app/manifest.ts` + `public/sw.js` (cacha `/samples` y `/canciones`). Tras cambiar el SW, sube
+  `VERSION` en `public/sw.js`. Iconos: `npm run icons:generate`.
+- Playwright: `npx playwright install --with-deps chromium` la primera vez. El e2e de login se salta
+  si no hay `DATABASE_URL` (comprueba el aviso «cuentas no activadas»).

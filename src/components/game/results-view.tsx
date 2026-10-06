@@ -54,7 +54,7 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
   const worst = [...result.sections].filter((s) => s.notes > 0).sort((a, b) => a.accuracy - b.accuracy)[0];
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-4 py-8 sm:px-6" data-testid="resultados">
       <Card className="overflow-hidden py-0">
         <div className="bg-gradient-to-br from-amber-500/20 via-fuchsia-500/10 to-transparent p-6 sm:p-8">
           <p className="text-sm text-muted-foreground">

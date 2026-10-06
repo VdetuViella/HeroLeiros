@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, FolderOpen, Gauge, Keyboard, Repeat, Smartphone } from "lucide-react";
+import { ArrowRight, FolderOpen, Gauge, Keyboard, Mic, Music, Repeat, Smartphone } from "lucide-react";
 
 import { InstrumentChip } from "@/components/instrument-chip";
+import { InstallHint } from "@/components/pwa/install-hint";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDuration } from "@/lib/format";
@@ -10,6 +11,8 @@ import { loadAllSongs } from "@/lib/songs/load";
 const FEATURES = [
   { icon: Keyboard, title: "Teclado", text: "Teclas D F J K por defecto, configurables por carril." },
   { icon: Smartphone, title: "Pantalla táctil", text: "Pads grandes y multitáctiles en el móvil o la tableta." },
+  { icon: Mic, title: "Micrófono", text: "Toca tu instrumento de verdad; se juzga el tiempo de cada golpe." },
+  { icon: Music, title: "Partitura", text: "Pentagrama de percusión sincronizado, o vista dividida con el carril." },
   { icon: Gauge, title: "Velocidad", text: "Del 50 al 100 % sin perder calidad de sonido." },
   { icon: Repeat, title: "Bucles", text: "Repite una sección o cualquier tramo de compases." },
 ];
@@ -32,7 +35,8 @@ export default async function Home() {
             que se te resiste. Cada golpe se puntúa al milisegundo.
           </p>
         </div>
-        <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <InstallHint />
+        <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map(({ icon: Icon, title, text }) => (
             <li key={title} className="flex gap-3 rounded-xl bg-background/50 p-3">
               <Icon className="mt-0.5 size-5 shrink-0 text-primary" aria-hidden />
@@ -73,7 +77,11 @@ export default async function Home() {
           <ul className="grid gap-4 md:grid-cols-2">
             {songs.map(({ chart }) => (
               <li key={chart.slug}>
-                <Link href={`/canciones/${chart.slug}`} className="group block h-full rounded-xl focus-visible:outline-none">
+                <Link
+                  href={`/canciones/${chart.slug}`}
+                  data-testid={`cancion-${chart.slug}`}
+                  className="group block h-full rounded-xl focus-visible:outline-none"
+                >
                   <Card className="h-full transition-colors group-hover:ring-primary/50 group-focus-visible:ring-2 group-focus-visible:ring-primary">
                     <CardHeader>
                       <CardTitle className="font-heading text-xl">{chart.title}</CardTitle>

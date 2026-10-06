@@ -3,6 +3,7 @@ import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 
 import { AccountProvider } from "@/components/account/account-provider";
 import { UnsyncedBanner } from "@/components/account/unsynced-banner";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import { SiteHeader } from "@/components/site-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -23,12 +24,18 @@ const display = Bricolage_Grotesque({
 });
 
 export const metadata: Metadata = {
+  applicationName: "HeroLeiros",
   title: {
     default: "HeroLeiros · Ensaya tu batucada",
     template: "%s · HeroLeiros",
   },
   description:
     "Elige canción e instrumento, toca con el resto del grupo sonando de fondo y mejora tu precisión golpe a golpe.",
+  appleWebApp: {
+    capable: true,
+    title: "HeroLeiros",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -46,6 +53,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${display.variable} h-full antialiased dark`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
+        <RegisterServiceWorker />
         <TooltipProvider>
           <AccountProvider>
             <SiteHeader />

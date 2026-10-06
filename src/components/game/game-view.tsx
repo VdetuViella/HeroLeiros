@@ -168,7 +168,7 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
             aria-label="Vista"
           >
             {VIEW_MODES.map(({ value, label, icon: Icon }) => (
-              <ToggleGroupItem key={value} value={value} aria-label={label} title={label}>
+              <ToggleGroupItem key={value} value={value} aria-label={label} title={label} data-testid={`vista-${value}`}>
                 <Icon />
                 <span className="hidden md:inline">{label}</span>
               </ToggleGroupItem>
@@ -184,7 +184,7 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
             <span className="hidden sm:inline">{paused ? "Continuar" : "Pausa"}</span>
             <kbd className="ml-1 hidden rounded bg-background/60 px-1 text-[10px] text-muted-foreground lg:inline">Esc</kbd>
           </Button>
-          <Button variant="outline" size="sm" onClick={() => void session.stop()} aria-label="Terminar">
+          <Button variant="outline" size="sm" onClick={() => void session.stop()} aria-label="Terminar" data-testid="terminar">
             <Square /> <span className="hidden sm:inline">Terminar</span>
           </Button>
         </div>

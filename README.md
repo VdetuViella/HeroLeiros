@@ -26,6 +26,8 @@ golpe a golpe.
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
 - **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
 - **Samples opcionales**: si `public/samples/` está vacío, cada golpe se sintetiza en el navegador.
+- **PWA**: instalable en el móvil (manifiesto + iconos). Un service worker cacha samples y páginas
+  de canciones; no intercepta `/api/` ni el worklet del micrófono en modo cache-first.
 - **Cuentas y progreso en la nube** (opcional): email y contraseña, roles director/miembro,
   grupos con enlace de invitación, historial y evolución de cada integrante y un panel del
   director con la mejor precisión por canción, la actividad reciente y las secciones con más
@@ -37,13 +39,22 @@ golpe a golpe.
 
 ## Puesta en marcha
 
+### Solo el juego (sin cuentas)
+
+No hace falta Postgres ni secretos. MIDI, carril, teclado, táctil, micrófono y partitura
+funcionan así:
+
 ```bash
 npm ci
 npm run dev        # http://127.0.0.1:43147
 ```
 
-Así ya se puede jugar. Para activar las cuentas y el progreso en la nube hace falta Postgres
-(Docker en local):
+La primera vez que abras una partida el navegador pedirá gesto de usuario («Tocar …») para
+arrancar el audio. En el móvil, Chrome/Safari ofrecerán «Añadir a pantalla de inicio».
+
+### Con cuentas y progreso
+
+Hace falta Postgres (Docker en local) y las variables de [`.env.example`](.env.example):
 
 ```bash
 cp .env.example .env.local   # y cambia BETTER_AUTH_SECRET (openssl rand -base64 32)
@@ -77,7 +88,8 @@ solo a los usuarios `@heroleiros.demo`.
 | ----------------------------- | -------- |
 | `npm run dev`                 | Servidor de desarrollo en el puerto 43147. |
 | `npm run build` / `npm start` | Compilación y servidor de producción. |
-| `npm test`                    | Tests de Vitest (parser, mapeo, juez, línea de tiempo, síntesis, calibración). |
+| `npm test`                    | Tests de Vitest (parser, mapeo, juez, micrófono, partitura, cuentas con PGlite). |
+| `npm run test:e2e`            | Playwright: elegir canción, tocar, resultados, partitura y PWA. |
 | `npm run lint`                | ESLint. |
 | `npm run typecheck`           | `tsc --noEmit`. |
 | `npm run songs:check`         | Valida las canciones de `content/songs` (pistas, notas sin mapear, compases, secciones). |
@@ -90,6 +102,63 @@ solo a los usuarios `@heroleiros.demo`.
 | `npm run db:migrate`          | Aplica las migraciones a `DATABASE_URL`. |
 | `npm run db:seed`             | Crea la directora, el grupo y los miembros de demo con tres semanas de partidas. |
 | `npm run db:setup`            | `db:migrate` + `db:seed`. |
+| `npm run icons:generate`      | Regenera los PNG de `public/icons/` (PWA). |
+
+## Convención MIDI
+
+Una pista por instrumento, una nota MIDI por tipo de golpe. Nombres de pista y tabla de notas:
+[`docs/convencion-midi.md`](docs/convencion-midi.md). Plantilla de Reaper en
+`docs/plantillas/plantilla-heroleiros.RPP`.
+
+## Micrófono
+
+En los ajustes de la canción elige **Micrófono**. Ponte auriculares para que no capte el
+acompañamiento. Calibración de ruido y de latencia en `/calibracion?entrada=microfono`.
+Detalle técnico (AudioWorklet, fase B): [`docs/microfono.md`](docs/microfono.md).
+
+## Partitura
+
+Durante la partida, el interruptor **Carril / Partitura / Dividida**. Los compases se pueden
+seleccionar para practicarlos en bucle. [`docs/partitura.md`](docs/partitura.md).
+
+## PWA
+
+`src/app/manifest.ts` + iconos en `public/icons/` + `public/sw.js`.
+
+- Cacha `/samples/*` (cache-first) y las páginas `/` y `/canciones/…` (stale-while-revalidate).
+- El worklet `/worklets/onset-processor.js` va **network-first** para no romper el micrófono
+  con un detector viejo. Las rutas `/api/` no se interceptan (auth e intentos).
+- Tras cambiar el service worker, sube la constante `VERSION` en `public/sw.js`.
+
+En iOS: compartir → Añadir a pantalla de inicio. En Android/Chrome: el diálogo de instalación
+del navegador cuando hay manifiesto e HTTPS.
+
+## Despliegue (Vercel + Neon)
+
+El juego no necesita credenciales. Las cuentas sí: Postgres en Neon y las variables de
+`.env.example` en Vercel.
+
+1. Crea un proyecto en [Neon](https://neon.tech) y copia la URL **pooled**
+   (`…-pooler….neon.tech/neondb?sslmode=require`).
+2. En [Vercel](https://vercel.com): Importa el repo (framework Next.js; `vercel.json` lo declara).
+   Variables de entorno de Production y Preview:
+   - `DATABASE_URL` — cadena pooled de Neon
+   - `BETTER_AUTH_SECRET` — `openssl rand -base64 32`
+   - `BETTER_AUTH_URL` — `https://tu-app.vercel.app` (o el dominio custom)
+   - `AUTH_TRUSTED_ORIGINS` — opcional, el mismo origen si usas un dominio extra
+3. Deploy. Después, con esa `DATABASE_URL`:
+
+```bash
+npm run db:migrate
+# opcional, cuentas de ensayo:
+npm run db:seed
+```
+
+CLI si tienes sesión: `npx vercel` (preview) y `npx vercel --prod`. Sin token no se puede
+desplegar desde aquí; el código queda listo para el dashboard.
+
+Sin `DATABASE_URL` en Vercel la app se sirve igual: se juega y las partidas quedan en el
+navegador; `/entrar` muestra que las cuentas no están activadas.
 
 ## Añadir una canción
 
@@ -169,6 +238,7 @@ drizzle/                 migraciones SQL generadas
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Base UI) ·
-Tone.js · @tonejs/midi · VexFlow · Postgres · Drizzle ORM · Better Auth · Zod · Vitest + PGlite.
+Tone.js · @tonejs/midi · VexFlow · Postgres · Drizzle ORM · Better Auth · Zod ·
+Vitest + PGlite · Playwright.
 
 Configuración de MCP para Cursor en local: [`docs/cursor-local.md`](docs/cursor-local.md).

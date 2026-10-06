@@ -14,6 +14,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Generado por `npm run worklet:build`.
     "public/worklets/**",
+    "public/sw.js",
+    "e2e/**",
+    "playwright.config.ts",
   ]),
 ]);
 

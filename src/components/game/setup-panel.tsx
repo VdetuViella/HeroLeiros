@@ -147,7 +147,7 @@ export function SetupPanel(props: SetupPanelProps) {
                 <ToggleGroupItem value="teclado" className="flex-1">
                   <Keyboard /> Teclado o pantalla
                 </ToggleGroupItem>
-                <ToggleGroupItem value="microfono" className="flex-1">
+                <ToggleGroupItem value="microfono" className="flex-1" data-testid="entrada-microfono">
                   <Mic /> Micrófono
                 </ToggleGroupItem>
               </ToggleGroup>
@@ -346,7 +346,7 @@ function PlayBar({
           <AlertCircle className="mt-0.5 size-4 shrink-0" /> {error}
         </p>
       )}
-      <Button size="lg" className="h-12 w-full text-base" onClick={onPlay} disabled={preparing}>
+      <Button size="lg" className="h-12 w-full text-base" onClick={onPlay} disabled={preparing} data-testid="tocar">
         {preparing ? <Loader2 className="animate-spin" /> : mic ? <Mic /> : <Play />}
         {preparing
           ? mic
