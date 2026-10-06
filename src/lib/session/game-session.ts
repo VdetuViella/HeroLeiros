@@ -217,7 +217,8 @@ export class GameSession {
   private readonly handleHit = (hit: InputHit) => {
     if (this.status !== "tocando") return;
     const visualTime = hit.time - this.t0;
-    if (hit.lane !== null && hit.lane < this.lastPress.length) this.lastPress[hit.lane] = visualTime;
+    if (hit.lane === null) this.lastPress.fill(visualTime);
+    else if (hit.lane < this.lastPress.length) this.lastPress[hit.lane] = visualTime;
 
     if (this.options.hitSounds && hit.lane !== null) {
       const stroke = this.track.lanes[hit.lane];

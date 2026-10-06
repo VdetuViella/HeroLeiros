@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { AlertCircle, Loader2, Play, Timer } from "lucide-react";
+import { AlertCircle, Headphones, Keyboard, Loader2, Mic, Play, Timer } from "lucide-react";
+
+import { MicSetup } from "@/components/mic/mic-setup";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,7 @@ import { INSTRUMENTS, STROKES, strokeLabel } from "@/lib/chart/instruments";
 import { getTrack } from "@/lib/chart/query";
 import type { Chart, ChartTrack, InstrumentId } from "@/lib/chart/types";
 import { formatDuration, formatPercent } from "@/lib/format";
+import type { InputMethod, MicPreferences } from "@/lib/mic/settings";
 import type { GuideMode } from "@/lib/session/game-session";
 import { MAX_RATE, MIN_RATE, resolveRange, type PracticeSettings } from "@/lib/session/practice";
 import { cn } from "@/lib/utils";
@@ -32,11 +35,16 @@ interface SetupPanelProps {
   onMixChange: (instrument: InstrumentId, mix: Partial<TrackMix>) => void;
   keymap: string[];
   onKeymapChange: (keymap: string[]) => void;
+  /** Latencia calibrada del método de entrada elegido. */
   latencyMs: number;
   best: Partial<Record<InstrumentId, AttemptResult>>;
   preparing: boolean;
   error: string | null;
   onPlay: () => void;
+  inputMethod: InputMethod;
+  onInputMethodChange: (method: InputMethod) => void;
+  micPrefs: MicPreferences;
+  onMicPrefsChange: (patch: Partial<MicPreferences>) => void;
 }
 
 const GUIDE_OPTIONS: { value: GuideMode; label: string }[] = [
@@ -121,16 +129,44 @@ export function SetupPanel(props: SetupPanelProps) {
 
           <Card size="sm">
             <CardHeader>
-              <CardTitle>Teclas de {INSTRUMENTS[track.instrument].name}</CardTitle>
-              <CardDescription>En pantallas táctiles también puedes tocar los pads de debajo del carril.</CardDescription>
+              <CardTitle>Cómo vas a tocar</CardTitle>
+              <CardDescription>
+                {props.inputMethod === "microfono"
+                  ? "Con tu instrumento de verdad delante del micrófono."
+                  : "En pantallas táctiles también puedes tocar los pads de debajo del carril."}
+              </CardDescription>
             </CardHeader>
-            <CardContent>
-              <KeymapEditor
-                instrument={track.instrument}
-                lanes={track.lanes}
-                keymap={props.keymap}
-                onChange={props.onKeymapChange}
-              />
+            <CardContent className="space-y-4">
+              <ToggleGroup
+                variant="outline"
+                className="w-full"
+                value={[props.inputMethod]}
+                onValueChange={(value) => value[0] && props.onInputMethodChange(value[0] as InputMethod)}
+                aria-label="Método de entrada"
+              >
+                <ToggleGroupItem value="teclado" className="flex-1">
+                  <Keyboard /> Teclado o pantalla
+                </ToggleGroupItem>
+                <ToggleGroupItem value="microfono" className="flex-1">
+                  <Mic /> Micrófono
+                </ToggleGroupItem>
+              </ToggleGroup>
+              {props.inputMethod === "microfono" ? (
+                <MicSetup
+                  prefs={props.micPrefs}
+                  onChange={props.onMicPrefsChange}
+                  latencyMs={props.latencyMs}
+                  instrument={track.instrument}
+                  lanes={track.lanes}
+                />
+              ) : (
+                <KeymapEditor
+                  instrument={track.instrument}
+                  lanes={track.lanes}
+                  keymap={props.keymap}
+                  onChange={props.onKeymapChange}
+                />
+              )}
             </CardContent>
           </Card>
         </section>
@@ -254,13 +290,15 @@ export function SetupPanel(props: SetupPanelProps) {
                 </ToggleGroup>
               </div>
 
-              <ToggleRow
-                id="golpes"
-                label="Sonido al tocar"
-                hint="Oyes tu golpe al pulsar cada tecla o pad."
-                checked={settings.hitSounds}
-                onChange={(hitSounds) => onSettingsChange({ hitSounds })}
-              />
+              {props.inputMethod !== "microfono" && (
+                <ToggleRow
+                  id="golpes"
+                  label="Sonido al tocar"
+                  hint="Oyes tu golpe al pulsar cada tecla o pad."
+                  checked={settings.hitSounds}
+                  onChange={(hitSounds) => onSettingsChange({ hitSounds })}
+                />
+              )}
             </CardContent>
           </Card>
 
@@ -293,8 +331,14 @@ function PlayBar({
   preparing,
   error,
   onPlay,
+  inputMethod,
+  micPrefs,
   className,
-}: Pick<SetupPanelProps, "latencyMs" | "preparing" | "error" | "onPlay"> & { track: ChartTrack; className?: string }) {
+}: Pick<SetupPanelProps, "latencyMs" | "preparing" | "error" | "onPlay" | "inputMethod" | "micPrefs"> & {
+  track: ChartTrack;
+  className?: string;
+}) {
+  const mic = inputMethod === "microfono";
   return (
     <div className={cn("space-y-2", className)}>
       {error && (
@@ -303,13 +347,22 @@ function PlayBar({
         </p>
       )}
       <Button size="lg" className="h-12 w-full text-base" onClick={onPlay} disabled={preparing}>
-        {preparing ? <Loader2 className="animate-spin" /> : <Play />}
-        {preparing ? "Preparando sonidos…" : `Tocar ${INSTRUMENTS[track.instrument].name}`}
+        {preparing ? <Loader2 className="animate-spin" /> : mic ? <Mic /> : <Play />}
+        {preparing
+          ? mic
+            ? "Preparando sonidos y micrófono…"
+            : "Preparando sonidos…"
+          : `Tocar ${INSTRUMENTS[track.instrument].name}${mic ? " con micrófono" : ""}`}
       </Button>
+      {mic && !micPrefs.headphones && (
+        <p className="flex items-center justify-center gap-1.5 text-xs text-amber-300">
+          <Headphones className="size-3.5" /> Ponte auriculares para que el micro no oiga el acompañamiento.
+        </p>
+      )}
       <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
         <Timer className="size-3.5" />
-        Latencia calibrada: {latencyMs} ms ·{" "}
-        <Link href="/calibracion" className="underline underline-offset-2 hover:text-foreground">
+        Latencia {mic ? "del micrófono" : "calibrada"}: {latencyMs} ms ·{" "}
+        <Link href={mic ? "/calibracion?entrada=microfono" : "/calibracion"} className="underline underline-offset-2 hover:text-foreground">
           calibrar
         </Link>
       </p>

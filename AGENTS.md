@@ -31,3 +31,7 @@ Juego de ritmo para ensayar batucada. Toda la UI y la documentación van en espa
   `npm run db:setup`. Demo: `directora@heroleiros.demo` / `batucada123` → `/director`;
   `ana@heroleiros.demo` → `/progreso`. Los tests de `src/server` usan PGlite y no necesitan Docker.
 - Tras cambiar `src/server/db/schema.ts`: `npm run db:generate` y commitea la migración de `drizzle/`.
+- Micrófono sin hardware: `npm run mic:wav -- --out /tmp/mic.wav` y Chrome con
+  `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=/tmp/mic.wav`
+  (ver `docs/microfono.md`). Si tocas `src/lib/mic/onset-detector.ts` o el worklet, ejecuta
+  `npm run worklet:build`: un test compara `public/worklets/onset-processor.js` con el código fuente.

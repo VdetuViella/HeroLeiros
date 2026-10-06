@@ -163,7 +163,7 @@ function drawHighway(
     ctx.fillText(keyLabels[lane] ?? "", cx, hitY + (height - hitY) / 2 + 4);
   });
 
-  drawFeedback(ctx, session.feedback, t, laneWidth, hitY);
+  drawFeedback(ctx, session.feedback, t, laneWidth, lanes.length, hitY);
 }
 
 function drawNote(
@@ -220,6 +220,7 @@ function drawFeedback(
   feedback: FeedbackEvent[],
   t: number,
   laneWidth: number,
+  laneCount: number,
   hitY: number,
 ) {
   ctx.textAlign = "center";
@@ -251,12 +252,13 @@ function drawFeedback(
         throw new Error(`Evento desconocido: ${JSON.stringify(exhaustive)}`);
       }
     }
-    if (lane === null) continue;
     const progress = since / LABEL_SECONDS;
     ctx.globalAlpha = 1 - progress * progress;
     ctx.fillStyle = style.color;
     ctx.font = `800 ${event.kind === "acierto" && event.judgement === "perfecto" ? 18 : 15}px system-ui, sans-serif`;
-    ctx.fillText(style.text, lane * laneWidth + laneWidth / 2, hitY - 40 - progress * 30);
+    // Golpes sin carril (micrófono): la etiqueta va en el centro del carril entero.
+    const x = lane === null ? (laneWidth * laneCount) / 2 : lane * laneWidth + laneWidth / 2;
+    ctx.fillText(style.text, x, hitY - 40 - progress * 30);
   }
   ctx.globalAlpha = 1;
 }
