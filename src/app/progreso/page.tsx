@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { INSTRUMENTS } from "@/lib/chart/instruments";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { loadAllSongs } from "@/lib/songs/load";
 import { cn } from "@/lib/utils";
 import { getDb, isDatabaseConfigured } from "@/server/db/client";
 import { getCurrentUser } from "@/server/current-user";
@@ -31,13 +32,15 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
   const { cancion } = await searchParams;
   const songFilter = typeof cancion === "string" ? cancion : undefined;
   const db = getDb();
-  const [summary, bests, trend, history, groups] = await Promise.all([
+  const [summary, bests, trend, history, groups, repertoire] = await Promise.all([
     memberSummary(db, user.id),
     memberBests(db, user.id),
     accuracyTrend(db, user.id, { songSlug: songFilter, days: 60 }),
     memberHistory(db, user.id, 25),
     memberGroups(db, user.id),
+    loadAllSongs(),
   ]);
+  const barsBySong = new Map(repertoire.map(({ chart }) => [chart.slug, chart.bars]));
   const songs = [...new Map(bests.map((b) => [b.songSlug, b.songTitle])).entries()];
   const now = new Date();
 
@@ -206,7 +209,10 @@ export default async function ProgressPage({ searchParams }: PageProps<"/progres
                         </span>
                       </TableCell>
                       <TableCell className="hidden text-muted-foreground md:table-cell">
-                        {h.sectionName ?? `Compases ${h.startBar}–${h.endBar}`}
+                        {h.sectionName ??
+                          (h.startBar === 1 && h.endBar >= (barsBySong.get(h.songSlug) ?? Infinity)
+                            ? "Canción completa"
+                            : `Compases ${h.startBar}–${h.endBar}`)}
                       </TableCell>
                       <TableCell className="text-right">
                         <AccuracyBadge accuracy={h.accuracy} />

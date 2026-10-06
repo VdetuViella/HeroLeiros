@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { memberships, users } from "../db/schema";
 import type { Db } from "../db/types";
 import type { SessionUser } from "../session";
+import { directorGroups } from "../groups/service";
 import { createTestDb, insertUser } from "../test/db";
 import { getInvitation, postAcceptInvitation, postGroup, postRegenerateInvite } from "./groups";
 import type { ApiContext } from "./http";
@@ -75,6 +76,9 @@ describe("grupos e invitaciones", () => {
     expect(await db.$count(memberships, eq(memberships.groupId, groupId))).toBe(1);
 
     expect((await postAcceptInvitation(req(), ctxAs(dir), inviteCode)).status).toBe(409);
+
+    const [listed] = await directorGroups(db, dir.id);
+    expect(listed).toMatchObject({ id: groupId, name: "Grupo 2", members: 1 });
   });
 
   it("regenerar el enlace invalida el anterior y solo lo puede hacer su director", async () => {

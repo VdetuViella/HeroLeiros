@@ -14,7 +14,7 @@ export function SiteHeader() {
           HeroLeiros
         </Link>
         <nav className="flex items-center gap-1 text-sm">
-          <Link href="/" className="rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
+          <Link href="/" className="hidden rounded-md px-3 py-1.5 text-muted-foreground sm:block transition-colors hover:bg-muted hover:text-foreground">
             Canciones
           </Link>
           <Link

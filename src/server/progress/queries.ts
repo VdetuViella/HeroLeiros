@@ -299,11 +299,13 @@ export interface SectionMisses {
 /**
  * Secciones (por canción e instrumento) con más fallos del grupo en los
  * últimos `days` días, a partir del desglose por sección de cada intento.
+ * Se ordenan por proporción de notas falladas; con menos de `minNotes`
+ * notas tocadas la muestra es demasiado pequeña y no se cuenta.
  */
 export async function groupSectionMisses(
   db: Db,
   groupId: string,
-  options: { days?: number; limit?: number; now?: Date } = {},
+  options: { days?: number; limit?: number; minNotes?: number; now?: Date } = {},
 ): Promise<SectionMisses[]> {
   const since = new Date((options.now ?? new Date()).getTime() - (options.days ?? 30) * 86_400_000);
   const result = await db.execute(sql`
@@ -322,7 +324,9 @@ export async function groupSectionMisses(
     where a.finished_at >= ${since.toISOString()}::timestamptz
     group by a.song_slug, s.value->>'name', a.instrument
     having sum((s.value->'counts'->>'fallo')::int) > 0
-    order by "misses" desc, "notes" asc, "songSlug", "section"
+      and sum((s.value->>'notes')::int) >= ${options.minNotes ?? 16}
+    order by sum((s.value->'counts'->>'fallo')::int)::float8 / sum((s.value->>'notes')::int) desc,
+      "misses" desc, "songSlug", "section"
     limit ${options.limit ?? 8}
   `);
   return rowsOf<Omit<SectionMisses, "missRate">>(result).map((r) => {

@@ -41,10 +41,12 @@ export async function directorGroups(db: Db, userId: string) {
       name: groups.name,
       inviteCode: groups.inviteCode,
       createdAt: groups.createdAt,
-      members: sql<number>`(select count(*)::int from ${memberships} where ${memberships.groupId} = ${groups.id})`,
+      members: sql<number>`count(${memberships.id})::int`,
     })
     .from(groups)
+    .leftJoin(memberships, eq(memberships.groupId, groups.id))
     .where(eq(groups.directorId, userId))
+    .groupBy(groups.id)
     .orderBy(asc(groups.createdAt));
 }
 

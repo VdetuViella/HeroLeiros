@@ -156,24 +156,29 @@ describe("consultas del director", () => {
     ]);
   });
 
-  it("secciones con más fallos por canción e instrumento, en los últimos 30 días", async () => {
+  it("secciones con más fallos: por proporción, por canción e instrumento, en los últimos 30 días", async () => {
     const misses = await groupSectionMisses(db, groupId, { now: NOW });
     expect(misses[0]).toMatchObject({
       songSlug: "samba-de-ensayo",
-      section: "Groove",
-      instrument: "caixa",
-      misses: 6 * 5,
-      notes: 40 * 5,
-      players: 2,
-      attempts: 5,
+      section: "Breque",
+      instrument: "repinique",
+      misses: 12,
+      notes: 16,
+      players: 1,
+      attempts: 1,
     });
-    const breque = misses.find((m) => m.section === "Breque")!;
-    expect(breque).toMatchObject({ instrument: "repinique", misses: 12, notes: 16, players: 1 });
-    expect(breque.missRate).toBeCloseTo(0.75);
+    expect(misses[0].missRate).toBeCloseTo(0.75);
+    const groove = misses.find((m) => m.section === "Groove" && m.instrument === "caixa")!;
+    expect(groove).toMatchObject({ misses: 6 * 5, notes: 40 * 5, players: 2, attempts: 5 });
+    // Fuera del grupo y fuera de la ventana no cuentan.
     expect(misses.some((m) => m.section === "Final")).toBe(false);
-    // Las secciones sin fallos no aparecen.
-    expect(misses.some((m) => m.section === "Groove" && m.instrument === "repinique")).toBe(true);
-    expect(misses.every((m) => m.misses > 0)).toBe(true);
+    expect(misses.filter((m) => m.section === "Breque")).toHaveLength(1);
+    // «Todos» de primeros pasos tiene 10 notas: muestra pequeña con el mínimo por defecto (16).
+    expect(misses.some((m) => m.section === "Todos")).toBe(false);
+    const all = await groupSectionMisses(db, groupId, { now: NOW, minNotes: 1 });
+    expect(all.find((m) => m.section === "Todos")).toMatchObject({ instrument: "surdo1", missRate: 0.5 });
+    expect(all.every((m) => m.misses > 0)).toBe(true);
+    for (let i = 1; i < all.length; i++) expect(all[i - 1].missRate).toBeGreaterThanOrEqual(all[i].missRate);
     expect(await groupSectionMisses(db, groupId, { now: NOW, limit: 2 })).toHaveLength(2);
   });
 
