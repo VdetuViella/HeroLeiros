@@ -14,6 +14,7 @@ import { MicInputSource } from "@/lib/input/microphone";
 import { TouchInputSource } from "@/lib/input/touch";
 import { MicInput, toMicError } from "@/lib/mic/mic-input";
 import { classifierFor, detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
+import type { BarRange } from "@/lib/notation/layout";
 import { GameSession } from "@/lib/session/game-session";
 import {
   defaultPracticeSettings,
@@ -145,7 +146,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
     [onAttemptComplete, refreshBest],
   );
 
-  const play = useCallback(async () => {
+  const play = useCallback(async (current: PracticeSettings = settings) => {
     setError(null);
     let engine = engineRef.current;
     if (!engine) {
@@ -181,14 +182,15 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
 
       const clock = (performanceTime: number) => engine.heardTime(performanceTime);
       const touch = new TouchInputSource(clock);
-      const classifier = mic ? classifierFor(micPrefs, track.instrument, track.lanes) : null;
+      const playingTrack = getTrack(chart, current.instrument) ?? chart.tracks[0];
+      const classifier = mic ? classifierFor(micPrefs, playingTrack.instrument, playingTrack.lanes) : null;
       const session = new GameSession(engine, {
         chart,
-        instrument: settings.instrument,
-        plan: { rate: settings.rate, loop: settings.loop, countInBars: settings.countInBars, ...resolveRange(chart, settings) },
-        metronome: settings.metronome,
-        guide: settings.guide,
-        hitSounds: useMic ? false : settings.hitSounds,
+        instrument: current.instrument,
+        plan: { rate: current.rate, loop: current.loop, countInBars: current.countInBars, ...resolveRange(chart, current) },
+        metronome: current.metronome,
+        guide: current.guide,
+        hitSounds: useMic ? false : current.hitSounds,
         latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil"), microfono: loadLatencyMs("microfono") },
         inputs: mic ? [new MicInputSource(mic, engine, { classifier })] : [new KeyboardInputSource(keymap, clock), touch],
         onFinish: handleFinish,
@@ -210,7 +212,16 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       setError("No se pudo preparar el audio. Recarga la página e inténtalo de nuevo.");
       setPhase("ajustes");
     }
-  }, [chart, settings, mix, keymap, handleFinish, inputMethod, micPrefs, track]);
+  }, [chart, settings, mix, keymap, handleFinish, inputMethod, micPrefs]);
+
+  const loopBars = useCallback(
+    (range: BarRange) => {
+      const next: PracticeSettings = { ...settings, rangeMode: "compases", ...range, loop: true };
+      updateSettings(next);
+      void play(next);
+    },
+    [settings, updateSettings, play],
+  );
 
   const exitToSettings = useCallback(async () => {
     await releaseRunning(runningRef.current);
@@ -231,6 +242,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         mic={running.mic}
         onRestart={() => void play()}
         onExit={() => void exitToSettings()}
+        onLoopBars={loopBars}
       />
     );
   }

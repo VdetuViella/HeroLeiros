@@ -14,6 +14,9 @@ golpe a golpe.
 - **Práctica**: tu pista silenciada / baja / normal, mezclador con volumen, mute y solo por
   instrumento, metrónomo, cuenta atrás de 1 o 2 compases, y bucle A-B por sección o por compases.
 - **Carril Canvas** a 60 fps sincronizado con el reloj de audio, con un carril por golpe (2–4).
+- **Partitura** (VexFlow) en un pentagrama de percusión de una línea, cuantizada a semicorcheas o
+  tresillos, con cursor sincronizado, vistas carril / partitura / dividida y bucle A-B eligiendo
+  compases en la partitura. Símbolos y uso en [`docs/partitura.md`](docs/partitura.md).
 - **Entrada**: teclado (D F J K por defecto, configurable) y pads táctiles multitáctiles.
 - **Micrófono** (fase A): toca tu instrumento de verdad; un AudioWorklet detecta cada golpe y
   se juzga solo el tiempo. Prueba de nivel, ruido de la sala, sensibilidad, aviso de auriculares
@@ -116,6 +119,7 @@ src/components/game/song-player.tsx
         ├─ src/lib/audio/                   AudioEngine (Tone.js), samples + sintetizador
         ├─ src/lib/input/                   InputSource: teclado, táctil y micrófono
         ├─ src/lib/mic/                     detector de ataques, AudioWorklet, reloj y ajustes del micro
+        ├─ src/lib/notation/                cuantización, ritmo y símbolos (VexFlow en components/notation)
         ├─ src/lib/judge/                   Judge: ventanas, combo, precisión, estrellas
         └─ src/lib/attempts/                AttemptResult + reportAttempt() (localStorage + cola de subida)
 
@@ -152,8 +156,10 @@ drizzle/                 migraciones SQL generadas
   `inputs` de `GameSession`. Con `lanesAware: false`, el juez acepta cualquier carril
   (`Judge.hit(null, t)`), como hace `MicInputSource`. Los golpes deben venir en el reloj
   `AudioEngine.heardTime()`. La latencia por fuente se guarda con `saveLatencyMs(kind, …)`.
-- **Partitura**: el `Chart` (`src/lib/chart/types.ts`) trae cada nota con pulso, compás, golpe y
-  acento; `GameSession.now()` y `positionAt()` dan la posición actual para un cursor sincronizado.
+- **Partitura**: `src/lib/notation/` cuantiza el `Chart` (`quantizeTrack()`), escribe cada pulso
+  como figuras (`beatRhythm()`) y define los símbolos por golpe (`strokeSymbol()`); el dibujo con
+  VexFlow está en `src/components/notation/` y solo se carga al abrir la partitura.
+  `GameSession.now()` y `positionAt()` dan la posición actual para el cursor sincronizado.
 - **Backend de intentos**: cada partida terminada produce un `AttemptResult`
   (`src/lib/attempts/types.ts`). `AccountProvider` instala con `setAttemptReporter` un reporter
   que lo guarda en local y, con sesión, lo encola para `POST /api/attempts`. `SongPlayer` también
@@ -163,6 +169,6 @@ drizzle/                 migraciones SQL generadas
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Base UI) ·
-Tone.js · @tonejs/midi · Postgres · Drizzle ORM · Better Auth · Zod · Vitest + PGlite.
+Tone.js · @tonejs/midi · VexFlow · Postgres · Drizzle ORM · Better Auth · Zod · Vitest + PGlite.
 
 Configuración de MCP para Cursor en local: [`docs/cursor-local.md`](docs/cursor-local.md).
