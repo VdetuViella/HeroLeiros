@@ -21,10 +21,10 @@ import type { QuantizedBar, QuantizedTrack } from "@/lib/notation/quantize";
 import { barTokenCount, beatRhythm, isEmptyBar, type RhythmToken } from "@/lib/notation/rhythm";
 import { REST_KEY, strokeSymbol, vexKey, type StrokeSymbol } from "@/lib/notation/symbols";
 
-export const ROW_HEIGHT = 96;
-export const SCORE_PADDING_TOP = 10;
-/** La línea visible del pentagrama queda a esta altura dentro de la fila. */
-export const STAFF_LINE_OFFSET = 54;
+export const ROW_HEIGHT = 106;
+export const SCORE_PADDING_TOP = 6;
+/** La línea visible del pentagrama queda a esta altura dentro de la fila (deja sitio a plicas y tresillos). */
+export const STAFF_LINE_OFFSET = 68;
 
 const STAVE_LINE_SPACING = 10;
 const BAR_PADDING = 34;
@@ -32,6 +32,8 @@ const NOTE_SPACE = 19;
 const MIN_BAR_WIDTH = 104;
 const CLEF_WIDTH = 34;
 const TIME_SIGNATURE_WIDTH = 26;
+export const LEGEND_GLYPH_WIDTH = 48;
+export const LEGEND_GLYPH_HEIGHT = 84;
 const ONLY_MIDDLE_LINE = [0, 1, 2, 3, 4].map((line) => ({ visible: line === 2 }));
 
 export interface BarGeometry {
@@ -89,7 +91,8 @@ function noteForSymbol(symbol: StrokeSymbol, duration: string, dots: number): St
     stemDirection: Stem.UP,
   });
   if (dots) Dot.buildAndAttach([note], { all: true });
-  if (symbol.muted) note.addModifier(new Articulation("a+").setPosition(ModifierPosition.BELOW), 0);
+  // Sin `betweenLines` el «+» se iría por debajo de las cuatro líneas invisibles del pentagrama.
+  if (symbol.muted) note.addModifier(new Articulation("a+").setPosition(ModifierPosition.BELOW).setBetweenLines(), 0);
   if (symbol.ghost) Parenthesis.buildAndAttach([note]);
   return note;
 }
@@ -199,16 +202,15 @@ export function renderScore(host: HTMLDivElement, quantized: QuantizedTrack, wid
 
 /** Dibuja una sola nota de muestra para la leyenda. */
 export function renderLegendGlyph(host: HTMLDivElement, symbol: StrokeSymbol, accent: boolean): void {
-  const width = 44;
-  const height = 72;
+  const width = LEGEND_GLYPH_WIDTH;
+  const height = LEGEND_GLYPH_HEIGHT;
   const ctx = newContext(host, width, height);
-  const stave = new Stave(0, 44 - 6 * STAVE_LINE_SPACING, width, { leftBar: false, rightBar: false });
-  stave.setConfigForLines(ONLY_MIDDLE_LINE);
+  const stave = new Stave(0, 40 - 6 * STAVE_LINE_SPACING, width, { leftBar: false, rightBar: false });
+  stave.setConfigForLines(ONLY_MIDDLE_LINE).setNoteStartX(4);
   stave.setContext(ctx).draw();
   const note = noteForSymbol(symbol, "q", 0);
   if (accent) note.addModifier(new Articulation("a>").setPosition(ModifierPosition.BELOW), 0);
   const voice = new Voice({ numBeats: 1, beatValue: 4 }).setMode(VoiceMode.SOFT).addTickables([note]);
-  new Formatter().joinVoices([voice]).format([voice], width - 20);
-  note.setStave(stave);
+  new Formatter().joinVoices([voice]).formatToStave([voice], stave);
   voice.draw(ctx, stave);
 }

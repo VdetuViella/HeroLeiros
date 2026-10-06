@@ -37,8 +37,8 @@ export interface ScoreViewProps {
 const PADDING_X = 8;
 /** Tras desplazar a mano, el cursor deja de mover la vista durante este tiempo. */
 const USER_SCROLL_GRACE_MS = 2500;
-const CURSOR_TOP = STAFF_LINE_OFFSET - 40;
-const CURSOR_HEIGHT = 64;
+const CURSOR_TOP = STAFF_LINE_OFFSET - 46;
+const CURSOR_HEIGHT = 72;
 
 let fontsPromise: Promise<unknown> | null = null;
 
@@ -62,8 +62,7 @@ export function ScoreView({
   const cursorRef = useRef<HTMLDivElement>(null);
   const currentBarRef = useRef<HTMLDivElement>(null);
   const lastUserScroll = useRef(-Infinity);
-  const drag = useRef<{ anchor: number; pointerId: number; moved: boolean } | null>(null);
-  const suppressClick = useRef(false);
+  const drag = useRef<{ anchor: number; pointerId: number; moved: boolean; extend: boolean } | null>(null);
 
   const [fontsReady, setFontsReady] = useState(false);
   const [width, setWidth] = useState(0);
@@ -169,31 +168,36 @@ export function ScoreView({
 
   const onBarPointerDown = (bar: number) => (event: ReactPointerEvent<HTMLButtonElement>) => {
     if (event.button !== 0) return;
-    drag.current = { anchor: bar, pointerId: event.pointerId, moved: false };
-    if (event.pointerType === "mouse") contentRef.current?.setPointerCapture(event.pointerId);
+    drag.current = { anchor: bar, pointerId: event.pointerId, moved: false, extend: event.shiftKey };
+    markUserScroll();
+    if (event.pointerType === "mouse") {
+      event.preventDefault();
+      contentRef.current?.setPointerCapture(event.pointerId);
+    }
   };
 
   const onPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
     const state = drag.current;
     if (!state || state.pointerId !== event.pointerId) return;
+    markUserScroll();
     const bar = barAt(event.clientX, event.clientY);
     if (bar === null || (bar === state.anchor && !state.moved)) return;
     state.moved = true;
     onSelectionChange(dragSelection(state.anchor, bar));
   };
 
+  // El toque se resuelve en `pointerup`: con la captura del ratón el `click` ya no llega al botón del compás.
   const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     const state = drag.current;
     if (!state || state.pointerId !== event.pointerId) return;
-    suppressClick.current = event.type === "pointerup" && state.moved;
     drag.current = null;
+    if (event.type === "pointerup" && !state.moved) {
+      onSelectionChange(tapSelection(selection, state.anchor, state.extend));
+    }
   };
 
   const onBarClick = (bar: number) => (event: ReactMouseEvent<HTMLButtonElement>) => {
-    if (suppressClick.current) {
-      suppressClick.current = false;
-      return;
-    }
+    if (event.detail !== 0) return;
     onSelectionChange(tapSelection(selection, bar, event.shiftKey));
   };
 
@@ -233,7 +237,7 @@ export function ScoreView({
       >
         <div
           ref={contentRef}
-          className="relative"
+          className="relative select-none"
           style={{ height: geometry?.height ?? 120 }}
           onPointerMove={onPointerMove}
           onPointerUp={endDrag}

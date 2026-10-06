@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import type { InstrumentId, StrokeId } from "@/lib/chart/types";
 import { legendFor, type LegendEntry } from "@/lib/notation/symbols";
 
-import { renderLegendGlyph } from "./render-score";
+import { LEGEND_GLYPH_HEIGHT, LEGEND_GLYPH_WIDTH, renderLegendGlyph } from "./render-score";
 
 interface ScoreLegendProps {
   instrument: InstrumentId;
@@ -36,5 +36,7 @@ function LegendGlyph({ entry, ready }: { entry: LegendEntry; ready: boolean }) {
     if (!ready || !ref.current) return;
     renderLegendGlyph(ref.current, entry.symbol, entry.accent);
   }, [entry, ready]);
-  return <div ref={ref} className="h-[72px] w-11 shrink-0" aria-hidden />;
+  return (
+    <div ref={ref} className="shrink-0" style={{ width: LEGEND_GLYPH_WIDTH, height: LEGEND_GLYPH_HEIGHT }} aria-hidden />
+  );
 }

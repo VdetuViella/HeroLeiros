@@ -14,6 +14,9 @@ golpe a golpe.
 - **Práctica**: tu pista silenciada / baja / normal, mezclador con volumen, mute y solo por
   instrumento, metrónomo, cuenta atrás de 1 o 2 compases, y bucle A-B por sección o por compases.
 - **Carril Canvas** a 60 fps sincronizado con el reloj de audio, con un carril por golpe (2–4).
+- **Partitura** (VexFlow) en un pentagrama de percusión de una línea, cuantizada a semicorcheas o
+  tresillos, con cursor sincronizado, vistas carril / partitura / dividida y bucle A-B eligiendo
+  compases en la partitura. Símbolos y uso en [`docs/partitura.md`](docs/partitura.md).
 - **Entrada**: teclado (D F J K por defecto, configurable) y pads táctiles multitáctiles.
 - **Juez de tiempos**: Perfecto ±35 ms, Bien ±70 ms, Regular ±120 ms, golpes de más y carril
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
@@ -81,8 +84,9 @@ src/components/game/song-player.tsx
   `inputs` de `GameSession`. Con `lanesAware: false`, el juez acepta cualquier carril
   (`Judge.hit(null, t)`), que es la fase A del plan. Los golpes deben venir en el reloj
   `AudioEngine.heardTime()`. La latencia por fuente se guarda con `saveLatencyMs("microfono", …)`.
-- **Partitura**: el `Chart` (`src/lib/chart/types.ts`) trae cada nota con pulso, compás, golpe y
-  acento; `GameSession.now()` y `positionAt()` dan la posición actual para un cursor sincronizado.
+- **Partitura**: `src/lib/notation/` cuantiza el `Chart` (`quantizeTrack()`), escribe cada pulso
+  como figuras (`beatRhythm()`) y define los símbolos por golpe (`strokeSymbol()`); el dibujo con
+  VexFlow está en `src/components/notation/` y solo se carga al abrir la partitura.
 - **Backend de intentos**: cada partida terminada produce un `AttemptResult`
   (`src/lib/attempts/types.ts`). `reportAttempt()` lo guarda hoy en `localStorage`; basta con
   `setAttemptReporter({ submit: (r) => fetch("/api/attempts", …) })` para enviarlo al servidor.
@@ -91,6 +95,6 @@ src/components/game/song-player.tsx
 ## Stack
 
 Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Base UI) ·
-Tone.js · @tonejs/midi · Vitest.
+Tone.js · @tonejs/midi · VexFlow · Vitest.
 
 Configuración de MCP para Cursor en local: [`docs/cursor-local.md`](docs/cursor-local.md).

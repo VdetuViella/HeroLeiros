@@ -93,7 +93,10 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit, 
     return Math.max(session.plan.startBeat, positionAt(session.plan, session.now()).beat);
   }, [session]);
 
-  const activeRange = useMemo(() => ({ startBar: plan.startBar, endBar: plan.endBar }), [plan]);
+  const activeRange = useMemo(
+    () => (plan.startBar === 1 && plan.endBar === chart.bars ? null : { startBar: plan.startBar, endBar: plan.endBar }),
+    [plan, chart.bars],
+  );
 
   useEffect(() => {
     window.scrollTo({ top: 0 });
