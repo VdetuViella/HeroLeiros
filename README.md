@@ -1,85 +1,96 @@
-# Cursor local — Context7 + Playwright
+# HeroLeiros
 
-Configuración para **Cursor Desktop en tu máquina**, no para Cloud Agents.
+Juego de ritmo tipo Guitar Hero para ensayar batucada. Cada integrante elige canción e
+instrumento (surdos, caixa, repinique, tamborim, agogô, chocalho), toca su parte con el
+teclado o la pantalla táctil mientras suena el resto del grupo, y recibe una puntuación
+golpe a golpe.
 
-## 1. Context7
+## Qué incluye este MVP
 
-Necesitas la variable de entorno `CONTEXT7_API_KEY` (empieza por `ctx7sk`).
+- **Canciones desde MIDI**: el director deja `song.mid` + `meta.json` en `content/songs/<slug>/`.
+  Una pista por instrumento, una nota por tipo de golpe. Ver [`docs/convencion-midi.md`](docs/convencion-midi.md).
+- **Acompañamiento generado desde el MIDI** con Tone.js: cambiar la velocidad (50–100 %) solo
+  cambia cuándo se dispara cada sonido, sin estirar audio.
+- **Práctica**: tu pista silenciada / baja / normal, mezclador con volumen, mute y solo por
+  instrumento, metrónomo, cuenta atrás de 1 o 2 compases, y bucle A-B por sección o por compases.
+- **Carril Canvas** a 60 fps sincronizado con el reloj de audio, con un carril por golpe (2–4).
+- **Entrada**: teclado (D F J K por defecto, configurable) y pads táctiles multitáctiles.
+- **Juez de tiempos**: Perfecto ±35 ms, Bien ±70 ms, Regular ±120 ms, golpes de más y carril
+  equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
+- **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
+- **Samples opcionales**: si `public/samples/` está vacío, cada golpe se sintetiza en el navegador.
 
-**macOS / Linux** — en `~/.zshrc` o `~/.bashrc`:
+## Requisitos
 
-```bash
-export CONTEXT7_API_KEY="ctx7sk-…"
-```
+- Node.js 22 (o 20.19+) y npm.
 
-Cierra Cursor por completo y ábrelo de nuevo (mejor desde una terminal ya con la variable, o reinicia sesión gráfica si Cursor no hereda el shell).
-
-**Windows** — Variables de entorno del sistema → nueva variable de usuario `CONTEXT7_API_KEY`.
-
-Comprueba:
-
-```bash
-echo $CONTEXT7_API_KEY   # macOS/Linux
-```
-
-## 2. Playwright
-
-Requisitos: Node.js 18+ y `npx` en el PATH.
-
-La primera vez instala Chromium:
-
-```bash
-npx playwright install chromium
-```
-
-## 3. Dónde poner el `mcp.json`
-
-Este repo ya incluye `.cursor/mcp.json` con Context7 y Playwright. Si abres **esta carpeta** en Cursor Desktop, debería bastar.
-
-Para tenerlos en **todos** los proyectos, copia el mismo contenido a:
-
-- macOS/Linux: `~/.cursor/mcp.json`
-- Windows: `%USERPROFILE%\.cursor\mcp.json`
-
-Contenido:
-
-```json
-{
-  "mcpServers": {
-    "context7": {
-      "url": "https://mcp.context7.com/mcp",
-      "headers": {
-        "CONTEXT7_API_KEY": "${env:CONTEXT7_API_KEY}"
-      }
-    },
-    "playwright": {
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"]
-    }
-  }
-}
-```
-
-## 4. Activar en Cursor Desktop
-
-1. **Customize → MCP** (o Settings → Tools & MCP).
-2. Comprueba que `context7` y `playwright` aparecen en verde.
-3. Si Context7 sigue en cuota anónima, Cursor no está leyendo `CONTEXT7_API_KEY`: revisa el paso 1 y reinicia Cursor.
-4. Logs: Output → **MCP Logs**.
-
-## 5. Qué no hace falta
-
-| Cosa | Notas |
-| --- | --- |
-| Cloud Agent / Save environment | Era de la VM en la nube; ignóralo para trabajo local |
-| Plugin Playwright del marketplace | Opcional; este `mcp.json` ya lanza `@playwright/mcp` |
-| Navegador “de fábrica” de Cloud Agents | Solo en la nube (`computerUse`). En local usas Playwright MCP |
-
-## Panel opcional de este repo
+## Puesta en marcha
 
 ```bash
 npm ci
-npm run dev
+npm run dev        # http://127.0.0.1:43147
 ```
 
-Abre http://127.0.0.1:43147 — es solo un resumen; **no configura tu Cursor local**.
+## Scripts
+
+| Comando                       | Qué hace |
+| ----------------------------- | -------- |
+| `npm run dev`                 | Servidor de desarrollo en el puerto 43147. |
+| `npm run build` / `npm start` | Compilación y servidor de producción. |
+| `npm test`                    | Tests de Vitest (parser, mapeo, juez, línea de tiempo, síntesis, calibración). |
+| `npm run lint`                | ESLint. |
+| `npm run typecheck`           | `tsc --noEmit`. |
+| `npm run songs:check`         | Valida las canciones de `content/songs` (pistas, notas sin mapear, compases, secciones). |
+| `npm run songs:generate`      | Regenera los `.mid` de ejemplo y la plantilla MIDI. |
+| `npm run samples:manifest`    | Escanea `public/samples/` y escribe `manifest.json`. |
+
+## Añadir una canción
+
+1. Crea `content/songs/<slug>/` con `song.mid` y `meta.json` (parte de
+   `docs/plantillas/plantilla-heroleiros.mid` o del proyecto de Reaper).
+2. Ejecuta `npm run songs:check -- <slug>` y corrige lo que avise.
+3. Recarga la app: la canción aparece en la portada.
+
+## Añadir grabaciones reales
+
+Copia los archivos a `public/samples/<instrumento>/<golpe>.wav` (por ejemplo
+`public/samples/caixa/aro.wav`) y ejecuta `npm run samples:manifest`. Detalles en
+[`public/samples/README.md`](public/samples/README.md).
+
+## Arquitectura
+
+```
+content/songs/<slug>/{song.mid,meta.json}
+        │  src/lib/songs/load.ts (servidor)
+        ▼
+src/lib/chart/     parseChart() → Chart tipado (pistas → carriles → notas en pulsos y segundos)
+        │
+        ▼  (props de la página /canciones/[slug])
+src/components/game/song-player.tsx
+        ├─ src/lib/session/timeline.ts      plan de la partida: velocidad, cuenta atrás, bucle A-B
+        ├─ src/lib/session/game-session.ts  programa audio, recibe golpes, alimenta al juez
+        ├─ src/lib/audio/                   AudioEngine (Tone.js), samples + sintetizador
+        ├─ src/lib/input/                   InputSource: teclado, táctil (micrófono en el futuro)
+        ├─ src/lib/judge/                   Judge: ventanas, combo, precisión, estrellas
+        └─ src/lib/attempts/                AttemptResult + reportAttempt() (hoy localStorage)
+```
+
+### Puntos de extensión
+
+- **Nuevas entradas (micrófono)**: implementa `InputSource` (`src/lib/input/types.ts`) y pásala en
+  `inputs` de `GameSession`. Con `lanesAware: false`, el juez acepta cualquier carril
+  (`Judge.hit(null, t)`), que es la fase A del plan. Los golpes deben venir en el reloj
+  `AudioEngine.heardTime()`. La latencia por fuente se guarda con `saveLatencyMs("microfono", …)`.
+- **Partitura**: el `Chart` (`src/lib/chart/types.ts`) trae cada nota con pulso, compás, golpe y
+  acento; `GameSession.now()` y `positionAt()` dan la posición actual para un cursor sincronizado.
+- **Backend de intentos**: cada partida terminada produce un `AttemptResult`
+  (`src/lib/attempts/types.ts`). `reportAttempt()` lo guarda hoy en `localStorage`; basta con
+  `setAttemptReporter({ submit: (r) => fetch("/api/attempts", …) })` para enviarlo al servidor.
+  `SongPlayer` también acepta `onAttemptComplete`.
+
+## Stack
+
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · shadcn/ui (Base UI) ·
+Tone.js · @tonejs/midi · Vitest.
+
+Configuración de MCP para Cursor en local: [`docs/cursor-local.md`](docs/cursor-local.md).
