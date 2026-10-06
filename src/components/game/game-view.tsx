@@ -213,6 +213,15 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit, 
                 activeRange={activeRange}
                 selection={selection}
                 onSelectionChange={setSelection}
+                footer={
+                  selection && (
+                    <SelectionBar
+                      selection={selection}
+                      onLoop={onLoopBars && (() => onLoopBars(selection))}
+                      onClear={() => setSelection(null)}
+                    />
+                  )
+                }
                 className={cn(
                   mode === "partitura"
                     ? "h-[54vh] lg:h-[64vh]"
@@ -221,30 +230,6 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit, 
               />
             )}
           </div>
-          {selection && wide && (
-            <div className="absolute inset-x-2 bottom-2 z-10 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/95 px-3 py-2 shadow-lg backdrop-blur">
-              <p className="text-sm">
-                <span className="font-medium">
-                  {selection.startBar === selection.endBar
-                    ? `Compás ${selection.startBar}`
-                    : `Compases ${selection.startBar}–${selection.endBar}`}
-                </span>
-                {selection.startBar === selection.endBar && (
-                  <span className="block text-xs text-muted-foreground">Toca otro compás para cerrar el tramo.</span>
-                )}
-              </p>
-              <div className="flex items-center gap-1.5">
-                {onLoopBars && (
-                  <Button size="sm" onClick={() => onLoopBars(selection)}>
-                    <Repeat /> Practicar en bucle
-                  </Button>
-                )}
-                <Button size="icon-sm" variant="ghost" onClick={() => setSelection(null)} aria-label="Quitar selección">
-                  <X />
-                </Button>
-              </div>
-            </div>
-          )}
           {position.countIn && status === "tocando" && (
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
               <span key={position.countInRemaining} className="font-heading text-8xl font-extrabold text-primary drop-shadow-lg animate-in zoom-in-50 fade-in duration-200">
@@ -308,6 +293,40 @@ export function GameView({ session, chart, keyLabels, touch, onRestart, onExit, 
 
       <div className="mx-auto w-full max-w-[520px]">
         <TouchPads instrument={track.instrument} lanes={lanes} keyLabels={keyLabels} source={touch} />
+      </div>
+    </div>
+  );
+}
+
+function SelectionBar({
+  selection,
+  onLoop,
+  onClear,
+}: {
+  selection: BarRange;
+  onLoop?: () => void;
+  onClear: () => void;
+}) {
+  const single = selection.startBar === selection.endBar;
+  return (
+    <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/95 px-3 py-1.5 text-foreground shadow-lg backdrop-blur">
+      <p className="min-w-0 text-sm">
+        <span className="font-medium whitespace-nowrap">
+          {single ? `Compás ${selection.startBar}` : `Compases ${selection.startBar}–${selection.endBar}`}
+        </span>
+        {single && (
+          <span className="hidden text-xs text-muted-foreground sm:block">Toca otro compás para cerrar el tramo.</span>
+        )}
+      </p>
+      <div className="flex shrink-0 items-center gap-1.5">
+        {onLoop && (
+          <Button size="sm" onClick={onLoop}>
+            <Repeat /> Practicar en bucle
+          </Button>
+        )}
+        <Button size="icon-sm" variant="ghost" onClick={onClear} aria-label="Quitar selección">
+          <X />
+        </Button>
       </div>
     </div>
   );

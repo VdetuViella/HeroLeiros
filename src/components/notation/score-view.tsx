@@ -8,6 +8,7 @@ import {
   useState,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
+  type ReactNode,
 } from "react";
 import { BookOpen, Loader2 } from "lucide-react";
 
@@ -31,6 +32,8 @@ export interface ScoreViewProps {
   /** Compases elegidos para el bucle. */
   selection: BarRange | null;
   onSelectionChange: (range: BarRange | null) => void;
+  /** Se muestra flotando sobre la parte baja de la partitura (p. ej. acciones de la selección). */
+  footer?: ReactNode;
   className?: string;
 }
 
@@ -54,6 +57,7 @@ export function ScoreView({
   activeRange,
   selection,
   onSelectionChange,
+  footer,
   className,
 }: ScoreViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -205,7 +209,7 @@ export function ScoreView({
     !!range && bar >= range.startBar && bar <= range.endBar;
 
   return (
-    <div className={cn("flex min-h-0 flex-col overflow-hidden rounded-2xl bg-[#f6f1e7] text-stone-900", className)}>
+    <div className={cn("relative flex min-h-0 flex-col overflow-hidden rounded-2xl bg-[#f6f1e7] text-stone-900", className)}>
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-stone-300/70 px-3 py-1.5">
         <p className="min-w-0 truncate text-xs text-stone-600">
           <span className="font-semibold text-stone-900">{INSTRUMENTS[track.instrument].name}</span>
@@ -296,9 +300,10 @@ export function ScoreView({
       </div>
       {quantized.merged > 0 && (
         <p className="shrink-0 border-t border-stone-300/70 px-3 py-1 text-[11px] text-stone-600">
-          {quantized.merged} {quantized.merged === 1 ? "golpe muy cercano a otro se ha juntado" : "golpes muy cercanos a otros se han juntado"} al escribir la partitura.
+          {quantized.merged}           {quantized.merged === 1 ? "golpe muy cercano a otro se ha juntado" : "golpes muy cercanos a otros se han juntado"} al escribir la partitura.
         </p>
       )}
+      {footer && <div className="absolute inset-x-2 bottom-2 z-30">{footer}</div>}
     </div>
   );
 }
