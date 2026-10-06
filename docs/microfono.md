@@ -18,6 +18,14 @@ cualquier golpe vale para cualquier carril.
      clics de prueba y mide el viaje altavoz → micrófono.
    - **Tocando al clic**: con auriculares, tocas el instrumento en cada clic.
 
+### Distinguir golpes (fase B, experimental)
+
+En la misma tarjeta, activa **Distinguir golpes**, pulsa «Probar el micrófono» y, para cada
+golpe del instrumento (abierto, apagado, aro…), pulsa **Grabar** y da 6 golpes de ese tipo
+(hacen falta al menos 4). Con el perfil completo, la línea «Último golpe» muestra qué reconoce
+y en la partida cada golpe va a su carril: el juez vuelve a contar «otro carril». Sin perfil
+completo se juzga solo el tiempo. El perfil se guarda por instrumento.
+
 Todo se guarda en el dispositivo (`localStorage`: `heroleiros:entrada`, `heroleiros:microfono`,
 `heroleiros:latencia:microfono`).
 
@@ -44,7 +52,13 @@ getUserMedia (sin cancelación de eco, supresión de ruido ni control de gananci
   golpes, nivel y perfil de ruido. Traduce los errores de permisos a mensajes en español.
 - `src/lib/input/microphone.ts`: `MicInputSource` (`InputSource` con `lanesAware = false`) y la
   conversión al reloj «lo que se oye» (mediana móvil de `currentTime − heardTime()`).
-- `src/lib/mic/settings.ts`: método de entrada y preferencias del micrófono.
+- `src/lib/mic/settings.ts`: método de entrada y preferencias del micrófono (incluidos los
+  perfiles de timbre).
+- Fase B: tras cada ataque, el detector acumula ~25 ms de espectro y emite rasgos de timbre
+  (centroide espectral, energía por debajo de 250 Hz y por encima de 2,5 kHz, caída de nivel).
+  `src/lib/mic/stroke-classifier.ts` elige el golpe por centroide más cercano con distancia
+  normalizada; `MicInputSource` espera a esos rasgos (~25 ms, no afecta al tiempo juzgado) y
+  emite el golpe con su carril.
 
 ## Probar sin micrófono
 
@@ -61,7 +75,9 @@ golpes sintéticos de surdo, caixa, tamborim y clic con ruido de sala (`src/lib/
 
 ## Limitaciones conocidas
 
-- Fase A: no distingue el tipo de golpe; los «carriles» solo guían la vista.
+- Por defecto (fase A) no distingue el tipo de golpe; los «carriles» solo guían la vista. La
+  fase B es experimental: está probada con golpes sintéticos de surdo (abierto, apagado, aro),
+  no con grabaciones reales del grupo; golpes con timbres parecidos se confundirán.
 - Sin auriculares, el acompañamiento y el metrónomo pueden contar como golpes de más.
 - En salas muy ruidosas o con mucho eco hay que bajar la sensibilidad o subir el tiempo mínimo
   entre golpes; un golpe muy flojo justo después de uno fuerte (dentro de su cola) puede perderse.

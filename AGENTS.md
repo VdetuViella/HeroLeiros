@@ -25,3 +25,7 @@ Juego de ritmo para ensayar batucada. Toda la UI y la documentación van en espa
 - El audio necesita un gesto del usuario: en pruebas de navegador, pulsa «Tocar …» antes de esperar sonido.
   Sin altavoces la partida funciona igual (el reloj es el del `AudioContext`).
 - Flujo para probar a mano: portada → canción → elegir instrumento → «Tocar» → teclas D F J K → resultados.
+- Micrófono sin hardware: `npm run mic:wav -- --out /tmp/mic.wav` y Chrome con
+  `--use-fake-ui-for-media-stream --use-fake-device-for-media-stream --use-file-for-fake-audio-capture=/tmp/mic.wav`
+  (ver `docs/microfono.md`). Si tocas `src/lib/mic/onset-detector.ts` o el worklet, ejecuta
+  `npm run worklet:build`: un test compara `public/worklets/onset-processor.js` con el código fuente.

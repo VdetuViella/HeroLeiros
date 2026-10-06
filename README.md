@@ -17,7 +17,8 @@ golpe a golpe.
 - **Entrada**: teclado (D F J K por defecto, configurable) y pads táctiles multitáctiles.
 - **Micrófono** (fase A): toca tu instrumento de verdad; un AudioWorklet detecta cada golpe y
   se juzga solo el tiempo. Prueba de nivel, ruido de la sala, sensibilidad, aviso de auriculares
-  y calibración con un clic de prueba. Ver [`docs/microfono.md`](docs/microfono.md).
+  y calibración con un clic de prueba. Opcional y experimental: distinguir el tipo de golpe
+  con un perfil entrenado (fase B). Ver [`docs/microfono.md`](docs/microfono.md).
 - **Juez de tiempos**: Perfecto ±35 ms, Bien ±70 ms, Regular ±120 ms, golpes de más y carril
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
 - **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
