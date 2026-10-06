@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Geist, Geist_Mono } from "next/font/google";
 
+import { AccountProvider } from "@/components/account/account-provider";
+import { UnsyncedBanner } from "@/components/account/unsynced-banner";
 import { SiteHeader } from "@/components/site-header";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -45,8 +47,11 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <TooltipProvider>
-          <SiteHeader />
-          <main className="flex flex-1 flex-col">{children}</main>
+          <AccountProvider>
+            <SiteHeader />
+            <UnsyncedBanner />
+            <main className="flex flex-1 flex-col">{children}</main>
+          </AccountProvider>
         </TooltipProvider>
       </body>
     </html>

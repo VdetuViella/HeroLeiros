@@ -1,0 +1,22 @@
+name: heroleiros
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: heroleiros
+      POSTGRES_PASSWORD: heroleiros
+      POSTGRES_DB: heroleiros
+    ports:
+      - "54329:5432"
+    volumes:
+      - heroleiros-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U heroleiros -d heroleiros"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  heroleiros-db:

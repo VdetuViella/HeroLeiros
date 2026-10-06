@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Drum, Timer } from "lucide-react";
 
+import { AccountNav } from "@/components/account/account-nav";
+
 export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur">
@@ -23,6 +25,7 @@ export function SiteHeader() {
             <span className="hidden sm:inline">Calibrar latencia</span>
             <span className="sm:hidden">Latencia</span>
           </Link>
+          <AccountNav />
         </nav>
       </div>
     </header>
