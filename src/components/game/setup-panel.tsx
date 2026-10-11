@@ -25,6 +25,7 @@ import { MAX_RATE, MIN_RATE, resolveRange, type PracticeSettings } from "@/lib/s
 import { cn } from "@/lib/utils";
 
 import { KeymapEditor } from "./keymap-editor";
+import { ScoreBarPicker } from "./score-bar-picker";
 import { MixerPanel, type MixState } from "./mixer-panel";
 
 interface SetupPanelProps {
@@ -223,6 +224,14 @@ export function SetupPanel(props: SetupPanelProps) {
                 </Select>
                 {settings.rangeMode === "compases" && (
                   <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <ScoreBarPicker
+                        chart={chart}
+                        track={track}
+                        value={{ startBar: settings.startBar, endBar: settings.endBar }}
+                        onChange={(picked) => onSettingsChange({ startBar: picked.startBar, endBar: picked.endBar })}
+                      />
+                    </div>
                     <BarSelect
                       label="Desde (A)"
                       items={barItems}

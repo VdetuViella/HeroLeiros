@@ -31,7 +31,7 @@ Estas piezas son las que cierran el producto del plan. Sin ellas se puede **prob
 
 ## Limitaciones conocidas (no bloquean el ensayo)
 
-- El bucle A-B desde la partitura es en la pantalla de juego, no en los ajustes previos. En móvil, arrastrar en vertical desplaza el pentagrama; lo fiable es tocar A y luego B.
+- En móvil, arrastrar en vertical sobre la partitura la desplaza; para elegir compases lo fiable es tocar A y luego B.
 - Sin red se puede tocar todo lo descargado, pero las partidas con cuenta esperan en la cola hasta que vuelve la conexión, y `/progreso` y `/director` necesitan red.
 - Playwright no abre un micrófono real ni hace login con Postgres; `npm test` usa PGlite y no necesita Docker.
 - No hay tests automáticos del dibujo VexFlow (sí de la cuantización y el ritmo).
