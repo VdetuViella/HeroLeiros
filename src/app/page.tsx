@@ -3,6 +3,7 @@ import { ArrowRight, FolderOpen, Gauge, Keyboard, Mic, Music, Repeat, Smartphone
 
 import { InstrumentChip } from "@/components/instrument-chip";
 import { InstallHint } from "@/components/pwa/install-hint";
+import { OfflineDownload } from "@/components/pwa/offline-download";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDuration } from "@/lib/format";
@@ -60,6 +61,8 @@ export default async function Home() {
             </p>
           </div>
         </div>
+
+        {songs.length > 0 && <OfflineDownload slugs={songs.map(({ chart }) => chart.slug)} />}
 
         {songs.length === 0 ? (
           <Card className="items-center py-12 text-center">

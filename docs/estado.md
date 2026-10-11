@@ -61,7 +61,8 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 
 ### PWA, tests y despliegue preparado
 
-- Manifiesto, iconos, service worker que cacha samples y páginas de canciones (no intercepta `/api/`; el worklet va network-first).
+- Manifiesto, iconos, service worker que cacha samples, páginas de canciones y los archivos de la app (no intercepta `/api/`; el worklet va network-first).
+- **Ensayar sin conexión**: botón en la portada que guarda todo el repertorio (páginas, chunks de la app y grabaciones) en el dispositivo, con progreso y aviso si falta algo.
 - Vitest (parser, mapeo, juez, micrófono, partitura, cuentas con PGlite). Playwright: canción → teclado → resultados, toggle de partitura, selector de mic, aviso de cuentas sin DB, manifiesto y service worker.
 - Guía Vercel + Neon en el [README](../README.md#despliegue-vercel--neon). El código está listo; **no hay un despliegue de producción permanente** (hace falta `vercel login` y un proyecto Neon).
 

@@ -32,8 +32,9 @@ puntuación golpe a golpe.
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
 - **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
 - **Samples opcionales**: si `public/samples/` está vacío, cada golpe se sintetiza en el navegador.
-- **PWA**: instalable en el móvil (manifiesto + iconos). Un service worker cacha samples y páginas
-  de canciones; no intercepta `/api/` ni el worklet del micrófono en modo cache-first.
+- **PWA**: instalable en el móvil (manifiesto + iconos). Un service worker cacha samples, páginas
+  de canciones y los archivos de la app; no intercepta `/api/` ni el worklet del micrófono en modo
+  cache-first. En la portada, **Descargar para ensayar sin conexión** guarda todo el repertorio.
 - **Cuentas y progreso en la nube** (opcional): email y contraseña, roles director/miembro,
   grupos con enlace de invitación, historial y evolución de cada integrante y un panel del
   director con la mejor precisión por canción, la actividad reciente y las secciones con más
@@ -131,7 +132,12 @@ seleccionar para practicarlos en bucle. [`docs/partitura.md`](docs/partitura.md)
 
 `src/app/manifest.ts` + iconos en `public/icons/` + `public/sw.js`.
 
-- Cacha `/samples/*` (cache-first) y las páginas `/` y `/canciones/…` (stale-while-revalidate).
+- Cacha `/samples/*` y `/_next/static/*` (cache-first; estos últimos llevan hash y no cambian) y las
+  páginas `/`, `/canciones/…` y `/calibracion` (stale-while-revalidate).
+- **Ensayar sin conexión**: el botón de la portada manda al SW `{ type: "precache", urls }` con la
+  app, todas las canciones y las grabaciones de `samples/manifest.json`. El SW descubre los
+  `/_next/static/…` que referencian el HTML, el CSS y los chunks (también los que se cargan aparte,
+  como la partitura) y avisa del avance. Lógica en `src/lib/offline/repertoire.ts`.
 - El worklet `/worklets/onset-processor.js` va **network-first** para no romper el micrófono
   con un detector viejo. Las rutas `/api/` no se interceptan (auth e intentos).
 - Tras cambiar el service worker, sube la constante `VERSION` en `public/sw.js`.
