@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { AttemptResult } from "@/lib/attempts/types";
 import { INSTRUMENTS } from "@/lib/chart/instruments";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { accentAdvice } from "@/lib/judge/accent-feedback";
 
 import { Stars } from "./stars";
 
@@ -154,6 +155,43 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
           </CardContent>
         </Card>
       </div>
+
+      {result.accents && (
+        <Card data-testid="resultado-acentos">
+          <CardHeader>
+            <CardTitle>Acentos</CardTitle>
+            <CardDescription>{accentAdvice(result.accents)}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
+            <div>
+              <p className="font-heading text-4xl font-extrabold tabular-nums">{formatPercent(result.accents.accuracy)}</p>
+              <p className="text-sm text-muted-foreground">golpes con la fuerza justa</p>
+            </div>
+            <ul className="divide-y divide-border/60 text-sm">
+              <li className="flex items-center justify-between py-2">
+                <span>
+                  Acentos dados <span className="text-xs text-muted-foreground">de los que pide la partitura</span>
+                </span>
+                <span className="font-semibold tabular-nums text-green-400">
+                  {result.accents.accentsGiven} de {result.accents.accentNotes}
+                </span>
+              </li>
+              <li className="flex items-center justify-between py-2">
+                <span>
+                  Faltó el acento <span className="text-xs text-muted-foreground">nota acentuada tocada normal</span>
+                </span>
+                <span className="font-semibold tabular-nums text-pink-400">{result.accents.missed}</span>
+              </li>
+              <li className="flex items-center justify-between py-2">
+                <span>
+                  Acento de más <span className="text-xs text-muted-foreground">nota normal tocada fuerte</span>
+                </span>
+                <span className="font-semibold tabular-nums text-orange-400">{result.accents.extra}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <Button size="lg" onClick={onReplay}>

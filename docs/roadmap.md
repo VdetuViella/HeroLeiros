@@ -21,7 +21,8 @@ Estas piezas son las que cierran el producto del plan. Sin ellas se puede **prob
 ## Mejoras importantes (cuando ya se ensaye)
 
 5. **Fase B del micrófono con golpes reales.**  
-   Distinguir abierto / apagado / aro está detrás de un interruptor experimental y solo se ha entrenado con señales sintéticas de surdo. Hace falta grabar perfiles con el grupo y, si no aguanta, dejar la fase A (solo tiempo) como modo recomendado.
+   Distinguir abierto / apagado / aro está detrás de un interruptor experimental y solo se ha entrenado con señales sintéticas de surdo. Hace falta grabar perfiles con el grupo y, si no aguanta, dejar la fase A (solo tiempo) como modo recomendado. Lo mismo con los **acentos**: comprobar con baquetas en la mesa, caixa y surdo reales que la diferencia de fuerza se mide bien a la distancia habitual del móvil.
+   Los acentos de cada partida aún no se guardan en el servidor (hace falta una columna nueva y su migración con `npm run db:generate`); se ven en los resultados.
 
 6. **Cuentas en producción.**  
    Invitar a los integrantes con el enlace del director, comprobar que las partidas suben (incluida la cola sin conexión) y que `/director` refleja el avance. Ajustar textos o el flujo de “Dirijo un grupo” si en el primer ensayo se traba.

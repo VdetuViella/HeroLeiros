@@ -121,6 +121,7 @@
       this.featureWeightedHz = 0;
       this.featureStartDb = SILENCE_DB;
       this.featureEndDb = SILENCE_DB;
+      this.featureMaxDb = SILENCE_DB;
       this.featureHopIndex = 0;
       /** Último nivel RMS por bloque, dBFS (para el medidor). */
       this.levelDb = SILENCE_DB;
@@ -270,6 +271,7 @@
       this.featureWeightedHz = 0;
       this.featureStartDb = SILENCE_DB;
       this.featureEndDb = SILENCE_DB;
+      this.featureMaxDb = SILENCE_DB;
       this.featureHopIndex = 0;
     }
     accumulateFeatures(levelDb) {
@@ -282,6 +284,7 @@
       }
       if (this.featureHopIndex < 3) this.featureStartDb = Math.max(this.featureStartDb, levelDb);
       this.featureEndDb = levelDb;
+      this.featureMaxDb = Math.max(this.featureMaxDb, levelDb);
       this.featureHopIndex += 1;
     }
     emitFeatures(events) {
@@ -292,7 +295,8 @@
       events.push({
         type: "features",
         frame: this.featureFrame,
-        features: [Math.log2(centroid), low / total, high / total, (this.featureStartDb - this.featureEndDb) / 10]
+        features: [Math.log2(centroid), low / total, high / total, (this.featureStartDb - this.featureEndDb) / 10],
+        strikeDb: this.featureMaxDb
       });
     }
     fluxMedian() {
@@ -365,7 +369,7 @@
             this.post({ type: "onset", onset: event.onset, time: event.onset.frame / sampleRate });
             break;
           case "features":
-            this.post({ type: "features", frame: event.frame, features: event.features });
+            this.post({ type: "features", frame: event.frame, features: event.features, strikeDb: event.strikeDb });
             break;
           case "noise-profile":
             this.post({ type: "noise-profile", profile: event.profile });

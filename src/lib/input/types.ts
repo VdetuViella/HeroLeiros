@@ -11,6 +11,11 @@ export interface InputHit {
   source: InputSourceKind;
   /** Intensidad 0..1 si la fuente la conoce. */
   velocity?: number;
+  /**
+   * Si el golpe sonó acentuado. Solo lo pone una fuente que mide la fuerza con
+   * un umbral calibrado (micrófono); `undefined` = no se sabe.
+   */
+  accent?: boolean;
 }
 
 export type HitListener = (hit: InputHit) => void;

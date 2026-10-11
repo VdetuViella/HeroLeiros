@@ -24,9 +24,19 @@ export interface ExpectedNote {
   section: number;
 }
 
+/**
+ * Cómo salió el acento de un golpe acertado, cuando la entrada sabe medirlo
+ * (micrófono con los acentos calibrados): «bien» si coincide con la partitura
+ * (acento donde lo hay y golpe normal donde no), «perdido» si faltó el acento y
+ * «de-mas» si se acentuó un golpe normal.
+ */
+export type AccentResult = "bien" | "perdido" | "de-mas";
+
 export interface NoteState {
   note: ExpectedNote;
   result: Judgement | null;
+  /** `null` si la nota no se acertó o la entrada no mide acentos. */
+  accentResult: AccentResult | null;
   /** Desfase del golpe (golpe − nota) en segundos; negativo = adelantado. */
   offset: number | null;
   /** Momento en que se resolvió la nota. */
@@ -43,6 +53,8 @@ export type JudgeEvent =
       combo: number;
       multiplier: number;
       points: number;
+      /** `null` si la entrada no mide acentos. */
+      accent: AccentResult | null;
     }
   | { kind: "fallo"; note: ExpectedNote; time: number }
   | { kind: "carril-equivocado"; lane: number; expectedLane: number; time: number }
@@ -66,6 +78,23 @@ export interface SectionStats {
   accuracy: number;
 }
 
+/** Acentos de los golpes acertados que llegaron con fuerza medida. No cambian la puntuación. */
+export interface AccentStats {
+  /** Golpes acertados con fuerza medida. */
+  judged: number;
+  /** De ellos, los que coinciden con la partitura. */
+  correct: number;
+  /** Notas con acento que se tocaron sin acento. */
+  missed: number;
+  /** Notas normales que se tocaron acentuadas. */
+  extra: number;
+  /** Notas con acento (de las juzgadas) y cuántas se acentuaron. */
+  accentNotes: number;
+  accentsGiven: number;
+  /** correct / judged, 0..1. */
+  accuracy: number;
+}
+
 export interface JudgeStats {
   score: number;
   combo: number;
@@ -81,4 +110,6 @@ export interface JudgeStats {
   /** Desfase medio de los aciertos en segundos (negativo = adelantado). */
   meanOffset: number | null;
   sections: SectionStats[];
+  /** `null` si ningún golpe llegó con fuerza medida (teclado, táctil o micrófono sin calibrar acentos). */
+  accents: AccentStats | null;
 }

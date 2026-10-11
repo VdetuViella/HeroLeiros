@@ -41,6 +41,7 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 - Fase A (por defecto): se juzga **solo el tiempo**. Cualquier golpe vale para cualquier carril.
 - AudioWorklet (energía + flujo espectral, umbral adaptativo, tiempo muerto).
 - Prueba de nivel, medición de ruido de sala, sensibilidad, aviso de auriculares.
+- **Acentos**: el detector mide la fuerza de cada golpe; se calibra grabando golpes normales y acentuados (umbral entre sus medianas, aviso si no se distinguen). En la partida, cada acierto dice si el acento coincide con la partitura («Acento ✓», «¡Falta acento!», «Sin acento») y los resultados traen su propio apartado. No cambia la puntuación. Probado con golpes sintéticos (caixa, mesa, surdo, con ruido), no con el grupo real.
 - Fase B **experimental**: distinguir abierto / apagado / aro tras entrenar un perfil. Probada con golpes sintéticos, no con el grupo real.
 - Guía: [`microfono.md`](microfono.md).
 

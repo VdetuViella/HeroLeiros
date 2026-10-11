@@ -132,3 +132,57 @@ describe("scoring", () => {
     expect(accuracyFor(counts, false)).toBe(1);
   });
 });
+
+describe("Judge: acentos", () => {
+  const withAccents = (...specs: [time: number, accent: boolean][]): ExpectedNote[] =>
+    specs.map(([time, accent], i) => ({ id: `a${i}`, time, lane: 0, section: 0, accent }));
+
+  it("sin fuerza medida no juzga acentos (teclado, táctil)", () => {
+    const judge = new Judge();
+    judge.addNotes(withAccents([1, true], [2, false]));
+    const event = judge.hit(0, 1);
+    expect(event).toMatchObject({ kind: "acierto", accent: null });
+    judge.hit(0, 2);
+    expect(judge.stats().accents).toBeNull();
+    expect(judge.notes.map((n) => n.accentResult)).toEqual([null, null]);
+  });
+
+  it("compara el acento del golpe con el de la partitura", () => {
+    const judge = new Judge();
+    judge.addNotes(withAccents([1, true], [2, false], [3, true], [4, false]));
+    expect(judge.hit(null, 1, true)).toMatchObject({ kind: "acierto", accent: "bien" });
+    expect(judge.hit(null, 2, false)).toMatchObject({ kind: "acierto", accent: "bien" });
+    expect(judge.hit(null, 3, false)).toMatchObject({ kind: "acierto", accent: "perdido" });
+    expect(judge.hit(null, 4, true)).toMatchObject({ kind: "acierto", accent: "de-mas" });
+    expect(judge.notes.map((n) => n.accentResult)).toEqual(["bien", "bien", "perdido", "de-mas"]);
+    expect(judge.stats().accents).toEqual({
+      judged: 4,
+      correct: 2,
+      missed: 1,
+      extra: 1,
+      accentNotes: 2,
+      accentsGiven: 1,
+      accuracy: 0.5,
+    });
+  });
+
+  it("los acentos no cambian puntos, combo ni precisión de tiempo", () => {
+    const run = (accents: (boolean | undefined)[]) => {
+      const judge = new Judge();
+      judge.addNotes(withAccents([1, true], [2, true], [3, false]));
+      accents.forEach((accent, i) => judge.hit(null, i + 1 + 0.01, accent));
+      const { score, combo, accuracy, counts } = judge.stats();
+      return { score, combo, accuracy, counts };
+    };
+    expect(run([false, false, true])).toEqual(run([true, true, false]));
+    expect(run([false, false, true])).toEqual(run([undefined, undefined, undefined]));
+  });
+
+  it("los golpes de más y los fallos no cuentan como acentos", () => {
+    const judge = new Judge();
+    judge.addNotes(withAccents([1, true], [2, true]));
+    judge.hit(null, 1.5, true);
+    judge.advance(3);
+    expect(judge.stats().accents).toBeNull();
+  });
+});

@@ -40,6 +40,8 @@ export interface GameMic {
   input: MicInput;
   /** Fase B: los golpes llevan carril según su timbre. */
   classifies: boolean;
+  /** Los golpes dicen si sonaron acentuados (acentos calibrados). */
+  accents?: boolean;
 }
 
 // VexFlow solo hace falta al abrir la partitura y necesita el DOM.
@@ -344,6 +346,13 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
             <MiniCount label="De más" value={stats.counts.extra} />
             <MiniCount label="Carril" value={stats.counts.carrilEquivocado} className="text-orange-400" />
           </div>
+          {stats.accents && (
+            <div className="hidden grid-cols-3 gap-2 lg:grid" aria-label="Acentos">
+              <MiniCount label="Acentos" value={stats.accents.accentsGiven} className="text-green-400" />
+              <MiniCount label="Faltan" value={stats.accents.missed} className="text-pink-400" />
+              <MiniCount label="Sin acento" value={stats.accents.extra} className="text-orange-400" />
+            </div>
+          )}
         </aside>
       </div>
 
@@ -354,6 +363,7 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
               <Mic className="size-4 text-primary" /> Micrófono activo
               <span className="ml-auto text-xs font-normal text-muted-foreground">
                 {mic.classifies ? "Cada golpe va a su carril (experimental)" : "Cualquier golpe vale: cuenta el tiempo"}
+                {mic.accents ? " · con acentos" : ""}
               </span>
             </p>
             <MicLevelMeter mic={mic.input} />

@@ -215,6 +215,14 @@ function drawNote(
   ctx.globalAlpha = 1;
 }
 
+/** Segunda etiqueta, más pequeña, con el acento (solo si la entrada lo mide). */
+function accentLabel(event: FeedbackEvent["event"]): { text: string; color: string } | null {
+  if (event.kind !== "acierto" || event.accent === null) return null;
+  if (event.accent === "perdido") return { text: "¡Falta acento!", color: "#f472b6" };
+  if (event.accent === "de-mas") return { text: "Sin acento", color: "#fb923c" };
+  return event.note.accent ? { text: "Acento ✓", color: "#4ade80" } : null;
+}
+
 function drawFeedback(
   ctx: CanvasRenderingContext2D,
   feedback: FeedbackEvent[],
@@ -259,6 +267,12 @@ function drawFeedback(
     // Golpes sin carril (micrófono): la etiqueta va en el centro del carril entero.
     const x = lane === null ? (laneWidth * laneCount) / 2 : lane * laneWidth + laneWidth / 2;
     ctx.fillText(style.text, x, hitY - 40 - progress * 30);
+    const accent = accentLabel(event);
+    if (accent) {
+      ctx.fillStyle = accent.color;
+      ctx.font = "700 12px system-ui, sans-serif";
+      ctx.fillText(accent.text, x, hitY - 22 - progress * 30);
+    }
   }
   ctx.globalAlpha = 1;
 }

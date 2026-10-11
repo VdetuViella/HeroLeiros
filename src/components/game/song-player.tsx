@@ -13,7 +13,7 @@ import { defaultKeymap, keyLabel } from "@/lib/input/keymap";
 import { MicInputSource } from "@/lib/input/microphone";
 import { TouchInputSource } from "@/lib/input/touch";
 import { MicInput, toMicError } from "@/lib/mic/mic-input";
-import { classifierFor, detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
+import { accentDetectorFor, classifierFor, detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
 import type { BarRange } from "@/lib/notation/layout";
 import { GameSession } from "@/lib/session/game-session";
 import {
@@ -184,6 +184,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       const touch = new TouchInputSource(clock);
       const playingTrack = getTrack(chart, current.instrument) ?? chart.tracks[0];
       const classifier = mic ? classifierFor(micPrefs, playingTrack.instrument, playingTrack.lanes) : null;
+      const accents = mic ? accentDetectorFor(micPrefs, playingTrack.instrument) : null;
       const session = new GameSession(engine, {
         chart,
         instrument: current.instrument,
@@ -192,14 +193,14 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         guide: current.guide,
         hitSounds: useMic ? false : current.hitSounds,
         latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil"), microfono: loadLatencyMs("microfono") },
-        inputs: mic ? [new MicInputSource(mic, engine, { classifier })] : [new KeyboardInputSource(keymap, clock), touch],
+        inputs: mic ? [new MicInputSource(mic, engine, { classifier, accents })] : [new KeyboardInputSource(keymap, clock), touch],
         onFinish: handleFinish,
       });
       const next: Running = {
         session,
         touch,
         keyLabels: mic ? keymap.map(() => "") : keymap.map(keyLabel),
-        mic: mic ? { input: mic, classifies: classifier !== null } : null,
+        mic: mic ? { input: mic, classifies: classifier !== null, accents: accents !== null } : null,
       };
       runningRef.current = next;
       setRunning(next);

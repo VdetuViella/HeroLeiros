@@ -19,7 +19,7 @@ import { INSTRUMENTS, STROKES, strokeLabel } from "@/lib/chart/instruments";
 import { getTrack } from "@/lib/chart/query";
 import type { Chart, ChartTrack, InstrumentId } from "@/lib/chart/types";
 import { formatDuration, formatPercent } from "@/lib/format";
-import type { InputMethod, MicPreferences } from "@/lib/mic/settings";
+import type { InputMethod, MicPreferences, MicPreferencesUpdate } from "@/lib/mic/settings";
 import type { GuideMode } from "@/lib/session/game-session";
 import { MAX_RATE, MIN_RATE, resolveRange, type PracticeSettings } from "@/lib/session/practice";
 import { cn } from "@/lib/utils";
@@ -45,7 +45,7 @@ interface SetupPanelProps {
   inputMethod: InputMethod;
   onInputMethodChange: (method: InputMethod) => void;
   micPrefs: MicPreferences;
-  onMicPrefsChange: (patch: Partial<MicPreferences>) => void;
+  onMicPrefsChange: (update: MicPreferencesUpdate) => void;
 }
 
 const GUIDE_OPTIONS: { value: GuideMode; label: string }[] = [
