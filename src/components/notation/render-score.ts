@@ -124,12 +124,21 @@ function drawBar(
     for (const beat of bar.beats) {
       const { tuplet, tokens } = beatRhythm(beat);
       const notes = tokens.map((token) => buildNote(instrument, token));
-      notes.forEach((note, i) => placed.push({ note, beat: beat.beat + tokens[i].slot / beat.division }));
+      notes.forEach((note, i) =>
+        placed.push({ note, beat: beat.beat + (tokens[i].slot / beat.division) * beat.span }),
+      );
       if (tuplet) {
-        const allBeamed = tokens.length === 3 && tokens.every((t) => t.note);
-        tuplets.push(new Tuplet(notes, { numNotes: 3, notesOccupied: 2, bracketed: !allBeamed, ratioed: false }));
+        const allBeamed = tokens.length === tuplet.numNotes && tokens.every((t) => t.note);
+        tuplets.push(
+          new Tuplet(notes, {
+            numNotes: tuplet.numNotes,
+            notesOccupied: tuplet.notesOccupied,
+            bracketed: !allBeamed,
+            ratioed: false,
+          }),
+        );
       }
-      const beamable = tokens.flatMap((t, i) => (t.note && t.duration !== "q" ? [i] : []));
+      const beamable = tokens.flatMap((t, i) => (t.note && t.duration !== "q" && t.duration !== "h" ? [i] : []));
       if (beamable.length >= 2) {
         const group = notes.slice(beamable[0], beamable[beamable.length - 1] + 1);
         const beam = new Beam(group, false);

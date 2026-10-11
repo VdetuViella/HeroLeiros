@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { loadSong } from "../songs/load";
-import { quantizeNotes, quantizeTrack, type QuantizableNote, type QuantizedBeat } from "./quantize";
+import { meterFor, quantizeNotes, quantizeTrack, type QuantizableNote, type QuantizedBeat } from "./quantize";
 
 let nextId = 0;
 function note(beat: number, extra: Partial<QuantizableNote> = {}): QuantizableNote {
@@ -73,6 +73,71 @@ describe("quantizeNotes", () => {
     const slot = bars[0].beats[0].slots[2];
     expect(slot?.id).toBe(notes[0].id);
     expect(slot?.accent).toBe(true);
+  });
+
+  it("detecta tresillos de semicorchea (seisillos)", () => {
+    const notes = [0, 1, 2, 3, 4, 5].map((i) => note(2 + i / 6));
+    const { bars, merged, maxOffset } = quantizeNotes(notes, { beatsPerBar: 4, bars: 1 });
+    const beat = bars[0].beats[2];
+    expect(beat.division).toBe(6);
+    expect(onsets(beat)).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(merged).toBe(0);
+    expect(maxOffset).toBeLessThan(1e-9);
+  });
+
+  it("un tresillo de corcheas exacto no se escribe como seisillo", () => {
+    const notes = [0, 1 / 3, 2 / 3].map((beat) => note(beat));
+    const { bars } = quantizeNotes(notes, { beatsPerBar: 4, bars: 1 });
+    expect(bars[0].beats[0].division).toBe(3);
+  });
+
+  it("detecta fusas sin perder golpes", () => {
+    const notes = [0, 0.125, 0.25, 0.5].map((beat) => note(beat));
+    const { bars, merged } = quantizeNotes(notes, { beatsPerBar: 4, bars: 1 });
+    expect(bars[0].beats[0].division).toBe(8);
+    expect(onsets(bars[0].beats[0])).toEqual([0, 1, 2, 4]);
+    expect(merged).toBe(0);
+  });
+
+  it("las semicorcheas con swing moderado siguen siendo semicorcheas, no seisillos ni fusas", () => {
+    // 2.ª y 4.ª semicorchea 0,07 negras tarde: el «suingue» habitual de la samba.
+    const notes = [0, 0.32, 0.5, 0.82].map((beat) => note(beat));
+    const { bars } = quantizeNotes(notes, { beatsPerBar: 4, bars: 1 });
+    expect(bars[0].beats[0].division).toBe(4);
+    expect(onsets(bars[0].beats[0])).toEqual([0, 1, 2, 3]);
+  });
+
+  it("en 6/8 agrupa por negras con puntillo", () => {
+    // Dos pulsos de negra con puntillo: corcheas en el primero, semicorcheas en el segundo.
+    const notes = [0, 0.5, 1, 1.5, 1.75, 2, 2.25, 2.5, 2.75].map((beat) => note(beat));
+    const { bars, merged, maxOffset } = quantizeNotes(notes, { beatsPerBar: 3, bars: 1, meter: "compound" });
+    expect(bars[0].beats.map((b) => [b.beat, b.span, b.division])).toEqual([
+      [0, 1.5, 3],
+      [1.5, 1.5, 6],
+    ]);
+    expect(onsets(bars[0].beats[0])).toEqual([0, 1, 2]);
+    expect(onsets(bars[0].beats[1])).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(bars[0].beats[1].slots[3]?.beat).toBeCloseTo(2.25);
+    expect(merged).toBe(0);
+    expect(maxOffset).toBeLessThan(1e-9);
+  });
+
+  it("en 12/8 hay cuatro pulsos por compás y las notas pasan bien de un compás a otro", () => {
+    const { bars } = quantizeNotes([note(5.5), note(6), note(11.5)], { beatsPerBar: 6, bars: 2, meter: "compound" });
+    expect(bars.map((b) => b.beats.length)).toEqual([4, 4]);
+    expect(bars.map((b) => b.startBeat)).toEqual([0, 6]);
+    expect(onsets(bars[0].beats[3])).toEqual([2]);
+    expect(onsets(bars[1].beats[0])).toEqual([0]);
+    expect(onsets(bars[1].beats[3])).toEqual([2]);
+  });
+
+  it("elige compás compuesto solo para 6/8 y 12/8", () => {
+    expect(meterFor([6, 8], 3)).toBe("compound");
+    expect(meterFor([12, 8], 6)).toBe("compound");
+    expect(meterFor([4, 4], 4)).toBe("simple");
+    expect(meterFor([2, 4], 2)).toBe("simple");
+    expect(meterFor([3, 8], 2)).toBe("simple");
+    expect(meterFor([9, 8], 5)).toBe("simple");
   });
 
   it("reparte los pulsos por compases y respeta el último pulso", () => {

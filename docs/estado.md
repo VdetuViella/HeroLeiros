@@ -46,7 +46,7 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 
 ### Partitura
 
-- VexFlow, pentagrama de percusión de una línea, cuantización a semicorcheas o tresillos de corchea.
+- VexFlow, pentagrama de percusión de una línea. Cuantización por pulso: semicorcheas, tresillos de corchea, seisillos y fusas en compás simple; en 6/8 y 12/8, agrupada por negras con puntillo.
 - Vistas **Carril / Partitura / Dividida**, cursor sincronizado, bucle eligiendo compases.
 - Leyenda de símbolos en la partida y en [`partitura.md`](partitura.md).
 

@@ -26,8 +26,8 @@ Estas piezas son las que cierran el producto del plan. Sin ellas se puede **prob
 6. **Cuentas en producción.**  
    Invitar a los integrantes con el enlace del director, comprobar que las partidas suben (incluida la cola sin conexión) y que `/director` refleja el avance. Ajustar textos o el flujo de “Dirijo un grupo” si en el primer ensayo se traba.
 
-7. **Partitura más fiel en ritmos raros.**  
-   Hoy: semicorcheas y tresillos de corchea. Faltan tresillos de semicorchea, fusas, redobles, y agrupar 6/8 y 12/8 por negras con puntillo. Solo duele si el repertorio usa eso.
+7. **Redobles en la partitura.**  
+   Ya se escriben semicorcheas, tresillos de corchea, seisillos, fusas y 6/8 o 12/8 agrupados por negras con puntillo. Falta un símbolo de redoble (trémolo) y soportar 3/8 y 9/8, que hoy el parser redondea a negras enteras. Solo duele si el repertorio usa eso.
 
 ## Limitaciones conocidas (no bloquean el ensayo)
 
