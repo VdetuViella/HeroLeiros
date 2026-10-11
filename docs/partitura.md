@@ -71,6 +71,8 @@ Para ver una canción con tresillos y semicorcheas mezclados, abre **Ijexá de e
   - toca un compás (A) y luego otro (B), o
   - arrastra de un compás a otro con el ratón (o en horizontal con el dedo), o
   - con un tramo marcado, **Mayús + clic** lo amplía.
+- También en **pausa**: pulsa **Elegir compases en la partitura** y el menú de pausa se queda en
+  una barra encima; marca el tramo y pulsa **Practicar en bucle** sin tener que reanudar.
 - Pulsa **Practicar en bucle**: la partida vuelve a empezar repitiendo esos compases. El tramo se
   guarda en los ajustes de la canción como «Compases a medida» con «Repetir en bucle» activado.
 

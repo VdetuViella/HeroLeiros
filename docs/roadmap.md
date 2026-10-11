@@ -31,7 +31,6 @@ Estas piezas son las que cierran el producto del plan. Sin ellas se puede **prob
 
 ## Limitaciones conocidas (no bloquean el ensayo)
 
-- En pausa, la capa de pausa tapa la partitura: no se pueden marcar compases hasta reanudar o usar los ajustes de bucle.
 - El bucle A-B desde la partitura es en la pantalla de juego, no en los ajustes previos. En móvil, arrastrar en vertical desplaza el pentagrama; lo fiable es tocar A y luego B.
 - El service worker no precachea el MIDI en crudo (las canciones van en el HTML de `/canciones/…`).
 - Playwright no abre un micrófono real ni hace login con Postgres; `npm test` usa PGlite y no necesita Docker.

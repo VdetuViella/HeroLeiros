@@ -105,6 +105,16 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
   const setSelection = useCallback((range: BarRange | null) => setPicked({ session, range }), [session]);
   const wide = mode !== "carril";
 
+  // En pausa, «Elegir compases» reduce el menú a una barra para poder tocar la
+  // partitura (bucle A-B) sin reanudar. Cada pausa nueva vuelve a abrir el menú.
+  const [pauseMenuHidden, setPauseMenuHidden] = useState(false);
+  const [wasPaused, setWasPaused] = useState(paused);
+  if (wasPaused !== paused) {
+    setWasPaused(paused);
+    if (!paused) setPauseMenuHidden(false);
+  }
+  const pickingBars = paused && pauseMenuHidden && wide;
+
   const changeMode = (next: GameViewMode) => {
     setMode(next);
     writeLocal(VIEW_MODE_KEY, next);
@@ -214,6 +224,25 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
             wide ? "lg:col-start-2 lg:row-span-2 lg:row-start-1" : "lg:order-2",
           )}
         >
+          {pickingBars && (
+            <div
+              role="status"
+              className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/95 px-3 py-1.5"
+            >
+              <p className="text-sm">
+                <span className="font-medium">En pausa.</span>{" "}
+                <span className="text-muted-foreground">Toca un compás (A) y luego otro (B).</span>
+              </p>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button size="sm" onClick={() => void session.resume()}>
+                  <Play /> Continuar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPauseMenuHidden(false)}>
+                  Más opciones
+                </Button>
+              </div>
+            </div>
+          )}
           <div className={cn("flex min-h-0 flex-1 gap-3", mode === "dividida" ? "flex-col lg:flex-row" : "flex-col")}>
             {mode !== "partitura" && (
               <div
@@ -260,13 +289,18 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
               <span className="rounded-full bg-background/70 px-3 py-1 text-sm text-muted-foreground">Prepárate…</span>
             </div>
           )}
-          {paused && (
+          {paused && !pickingBars && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
               <div className="flex w-64 flex-col gap-2 text-center">
                 <p className="mb-2 font-heading text-2xl font-bold">En pausa</p>
                 <Button size="lg" onClick={() => void session.resume()}>
                   <Play /> Continuar
                 </Button>
+                {wide && (
+                  <Button size="lg" variant="secondary" onClick={() => setPauseMenuHidden(true)}>
+                    <Repeat /> Elegir compases en la partitura
+                  </Button>
+                )}
                 <Button size="lg" variant="secondary" onClick={onRestart}>
                   <RotateCcw /> Empezar de nuevo
                 </Button>
