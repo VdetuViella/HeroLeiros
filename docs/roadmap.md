@@ -6,30 +6,27 @@ Priorizado para que el grupo pueda ensayar en casa. Lo ya entregado está en [`e
 
 Estas piezas son las que cierran el producto del plan. Sin ellas se puede **probar** en local; no se puede **repartir** de verdad.
 
-1. **Poner la rama del producto en `main`.**  
-   La app completa está en `cursor/heroleiros-integracion-a812`. `main` no debe seguir siendo el esqueleto antiguo. Fusionar (o fast-forward) esa rama a `main` y trabajar a partir de ahí.
-
-2. **Despliegue permanente (Vercel + Neon).**  
+1. **Despliegue permanente (Vercel + Neon).**  
    El README ya describe los pasos. Falta: cuenta Vercel, proyecto Neon, `DATABASE_URL` pooled, `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`, `npm run db:migrate` (y opcionalmente `db:seed`). Sin esto no hay URL estable para compartir ni panel del director en la nube. Un preview anónimo de Vercel no vale: caduca.
 
-3. **Repertorio real.**  
+2. **Repertorio real.**  
    Solo hay tres canciones de ensayo. El director tiene que exportar los MIDI del DAW siguiendo [`convencion-midi.md`](convencion-midi.md), dejarlos en `content/songs/<slug>/` y pasar `npm run songs:check`.
 
-4. **Samples del propio grupo.**  
-   Hoy el acompañamiento es sintetizado. Grabar WAV por instrumento y golpe en `public/samples/<instrumento>/<golpe>.wav` y `npm run samples:manifest`. Sin esto suena a “juego”, no a la bateria.
+3. **Samples del propio grupo.**  
+   Hoy el acompañamiento es sintetizado. Grabar WAV por instrumento y golpe en `public/samples/<instrumento>/<golpe>.wav` y `npm run samples:manifest`. Sin esto suena a “juego”, no a la batería.
 
-5. **Probar micrófono y latencia en dispositivos reales.**  
+4. **Probar micrófono y latencia en dispositivos reales.**  
    La detección de golpes está comprobada con un micrófono falso en Chrome. Falta: móviles (sobre todo iOS), surdo fuerte, salas con eco, auriculares con cable, y la calibración de `/calibracion?entrada=microfono` en hardware de verdad. Hasta entonces, teclado y pads son lo fiable.
 
 ## Mejoras importantes (cuando ya se ensaye)
 
-6. **Fase B del micrófono con golpes reales.**  
+5. **Fase B del micrófono con golpes reales.**  
    Distinguir abierto / apagado / aro está detrás de un interruptor experimental y solo se ha entrenado con señales sintéticas de surdo. Hace falta grabar perfiles con el grupo y, si no aguanta, dejar la fase A (solo tiempo) como modo recomendado.
 
-7. **Cuentas en producción.**  
+6. **Cuentas en producción.**  
    Invitar a los integrantes con el enlace del director, comprobar que las partidas suben (incluida la cola sin conexión) y que `/director` refleja el avance. Ajustar textos o el flujo de “Dirijo un grupo” si en el primer ensayo se traba.
 
-8. **Partitura más fiel en ritmos raros.**  
+7. **Partitura más fiel en ritmos raros.**  
    Hoy: semicorcheas y tresillos de corchea. Faltan tresillos de semicorchea, fusas, redobles, y agrupar 6/8 y 12/8 por negras con puntillo. Solo duele si el repertorio usa eso.
 
 ## Limitaciones conocidas (no bloquean el ensayo)
@@ -54,10 +51,11 @@ Cosas del plan original que **no** se han pedido otra vez y no hace falta abrir 
 ## Orden sugerido
 
 ```
-main = rama integrada
-    → Vercel + Neon (URL para el grupo)
-        → MIDI del repertorio + samples grabados
-            → ensayo en casa (teclado / pads)
-                → calibrar micrófono en 2–3 móviles
-                    → abrir fase B solo si el grupo la necesita
+Vercel + Neon (URL para el grupo)
+    → MIDI del repertorio + samples grabados
+        → ensayo en casa (teclado / pads)
+            → calibrar micrófono en 2–3 móviles
+                → abrir fase B solo si el grupo la necesita
 ```
+
+Hecho: `main` ya es la rama integrada (repositorio en GitHub, `VdetuViella/HeroLeiros`).

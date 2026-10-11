@@ -32,7 +32,7 @@ flowchart LR
 
 ## Alcance por bloques
 
-Todos estos bloques **están implementados** en `cursor/heroleiros-integracion-a812` (con matices en el roadmap: despliegue permanente, samples reales, micrófono en hardware).
+Todos estos bloques **están implementados** en `main` (con matices en el roadmap: despliegue permanente, samples reales, micrófono en hardware).
 
 1. **Convención MIDI y formato de canción** — nombres de pista, tabla de notas, `meta.json`, parser, `songs:check`.
 2. **Motor de audio y práctica** — samples o sintetizador, mute/solo, velocidad, metrónomo, bucle A-B.

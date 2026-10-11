@@ -2,7 +2,7 @@
 
 Documento vivo de **lo que ya está hecho**. Lo que falta está en [`roadmap.md`](roadmap.md). El plan original (decisiones y alcance) está en [`plan-desarrollo.md`](plan-desarrollo.md).
 
-La app completa vive en la rama `cursor/heroleiros-integracion-a812`. `main` aún puede ser un esqueleto antiguo: no la uses como referencia del producto.
+El repositorio vive en GitHub: [`VdetuViella/HeroLeiros`](https://github.com/VdetuViella/HeroLeiros). La app completa está en `main` (procede de la antigua rama `cursor/heroleiros-integracion-a812` de Cursor Origin, que ya no hace falta).
 
 ## Qué es
 
