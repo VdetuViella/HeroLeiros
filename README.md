@@ -2,10 +2,16 @@
 
 Juego de ritmo tipo Guitar Hero para ensayar batucada. Cada integrante elige canción e
 instrumento (surdos, caixa, repinique, tamborim, agogô, chocalho), toca su parte con el
-teclado o la pantalla táctil mientras suena el resto del grupo, y recibe una puntuación
-golpe a golpe.
+teclado, la pantalla táctil o el micrófono mientras suena el resto del grupo, y recibe una
+puntuación golpe a golpe.
 
-## Qué incluye este MVP
+| Documento | Contenido |
+| --------- | --------- |
+| [Estado](docs/estado.md) | Qué está hecho, cómo arrancar, mapa del código |
+| [Qué queda](docs/roadmap.md) | Prioridad para el grupo, limitaciones, orden sugerido |
+| [Plan original](docs/plan-desarrollo.md) | Decisiones de producto con las que se construyó |
+
+## Qué incluye
 
 - **Canciones desde MIDI**: el director deja `song.mid` + `meta.json` en `content/songs/<slug>/`.
   Una pista por instrumento, una nota por tipo de golpe. Ver [`docs/convencion-midi.md`](docs/convencion-midi.md).
