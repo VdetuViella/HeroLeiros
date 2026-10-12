@@ -1,6 +1,6 @@
 import type { InstrumentId } from "../chart/types";
 import type { InputSourceKind } from "../input/types";
-import type { JudgementCounts } from "../judge/types";
+import type { AccentStats, JudgementCounts } from "../judge/types";
 
 export interface AttemptSectionResult {
   name: string;
@@ -38,6 +38,11 @@ export interface AttemptResult {
   meanOffsetMs: number | null;
   latencyOffsetMs: number;
   sections: AttemptSectionResult[];
+  /**
+   * Acentos (solo con micrófono y acentos calibrados). Opcional: las partidas
+   * anteriores no lo tienen y el servidor todavía no lo guarda.
+   */
+  accents?: AccentStats | null;
   startedAt: string;
   finishedAt: string;
 }

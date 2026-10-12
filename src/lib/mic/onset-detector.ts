@@ -45,7 +45,17 @@ export type StrokeFeatures = [number, number, number, number];
 
 export type DetectorEvent =
   | { type: "onset"; onset: Onset }
-  | { type: "features"; frame: number; features: StrokeFeatures }
+  | {
+      type: "features";
+      frame: number;
+      features: StrokeFeatures;
+      /**
+       * Fuerza del golpe: máximo del nivel RMS por bloque en sus primeros ~25 ms,
+       * dBFS. Es más estable que el pico de una sola muestra y sirve para
+       * distinguir golpes acentuados (ver `accent.ts`).
+       */
+      strikeDb: number;
+    }
   | { type: "noise-profile"; profile: NoiseProfile };
 
 export interface Thresholds {
@@ -166,6 +176,7 @@ export class OnsetDetector {
   private featureWeightedHz = 0;
   private featureStartDb = SILENCE_DB;
   private featureEndDb = SILENCE_DB;
+  private featureMaxDb = SILENCE_DB;
   private featureHopIndex = 0;
 
   /** Último nivel RMS por bloque, dBFS (para el medidor). */
@@ -344,6 +355,7 @@ export class OnsetDetector {
     this.featureWeightedHz = 0;
     this.featureStartDb = SILENCE_DB;
     this.featureEndDb = SILENCE_DB;
+    this.featureMaxDb = SILENCE_DB;
     this.featureHopIndex = 0;
   }
 
@@ -358,6 +370,7 @@ export class OnsetDetector {
     // El ataque puede tardar un par de bloques en llegar a su máximo.
     if (this.featureHopIndex < 3) this.featureStartDb = Math.max(this.featureStartDb, levelDb);
     this.featureEndDb = levelDb;
+    this.featureMaxDb = Math.max(this.featureMaxDb, levelDb);
     this.featureHopIndex += 1;
   }
 
@@ -370,6 +383,7 @@ export class OnsetDetector {
       type: "features",
       frame: this.featureFrame,
       features: [Math.log2(centroid), low / total, high / total, (this.featureStartDb - this.featureEndDb) / 10],
+      strikeDb: this.featureMaxDb,
     });
   }
 

@@ -10,6 +10,7 @@ import {
   saveMicPreferences,
   type InputMethod,
   type MicPreferences,
+  type MicPreferencesUpdate,
 } from "@/lib/mic/settings";
 
 /** Preferencias del micrófono guardadas en el dispositivo (se leen tras montar). */
@@ -23,8 +24,9 @@ export function useMicPreferences() {
     setMethod(loadInputMethod());
   }, []);
 
-  const updatePrefs = useCallback((patch: Partial<MicPreferences>) => {
+  const updatePrefs = useCallback((update: MicPreferencesUpdate) => {
     setPrefs((current) => {
+      const patch = typeof update === "function" ? update(current) : update;
       const next = { ...current, ...patch };
       saveMicPreferences(next);
       return next;

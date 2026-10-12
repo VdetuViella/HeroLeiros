@@ -20,7 +20,7 @@ export type ToWorklet =
 /** Worklet → hilo principal. */
 export type FromWorklet =
   | { type: "onset"; onset: Onset; /** Segundos de `AudioContext` del ataque. */ time: number }
-  | { type: "features"; frame: number; features: StrokeFeatures }
+  | { type: "features"; frame: number; features: StrokeFeatures; /** Fuerza del golpe, dBFS. */ strikeDb: number }
   | { type: "noise-profile"; profile: NoiseProfile }
   | {
       type: "level";

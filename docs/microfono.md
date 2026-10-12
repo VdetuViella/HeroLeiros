@@ -26,6 +26,32 @@ golpe del instrumento (abierto, apagado, aro…), pulsa **Grabar** y da 6 golpes
 y en la partida cada golpe va a su carril: el juez vuelve a contar «otro carril». Sin perfil
 completo se juzga solo el tiempo. El perfil se guarda por instrumento.
 
+### Acentos
+
+En la misma tarjeta, activa **Detectar acentos**, pulsa «Probar el micrófono» y:
+
+1. Pulsa **Grabar** en «Golpes normales» y da 6 golpes como tocas la mayoría de las notas.
+2. Pulsa **Grabar** en «Golpes acentuados» y da 6 golpes con la fuerza de un acento de verdad.
+
+Hacen falta al menos 4 de cada. La barra muestra dónde cae cada golpe (azul = normal,
+ámbar = acento), el **umbral** que los separa y el último golpe; la línea de debajo dice si lo
+reconoce como acento. Si los dos tipos suenan con menos de 4 dB de diferencia, avisa y no se
+juzgan los acentos: marca más la diferencia o acerca el micrófono. Calibra con el micrófono en
+el sitio donde vayas a tocar; si cambias de sitio, de micrófono o de baquetas, vuelve a calibrar.
+La calibración se guarda por instrumento.
+
+En la partida, cada golpe acertado se compara con la partitura (acentos: velocidad MIDI ≥ 110 o
+nota 40, ver [`convencion-midi.md`](convencion-midi.md)):
+
+- **Acento ✓**: era un acento y lo has dado.
+- **¡Falta acento!**: era un acento y ha sonado normal.
+- **Sin acento**: era una nota normal y la has acentuado.
+
+Los resultados traen un apartado **Acentos** (porcentaje de golpes con la fuerza justa, acentos
+dados, los que faltaron y los de más) con un consejo. Los acentos **no cambian** la puntuación,
+el combo ni la precisión de tiempo, para que las partidas sigan siendo comparables con las de
+teclado. Con teclado o pantalla no se juzgan.
+
 Todo se guarda en el dispositivo (`localStorage`: `heroleiros:entrada`, `heroleiros:microfono`,
 `heroleiros:latencia:microfono`).
 
@@ -59,13 +85,19 @@ getUserMedia (sin cancelación de eco, supresión de ruido ni control de gananci
   `src/lib/mic/stroke-classifier.ts` elige el golpe por centroide más cercano con distancia
   normalizada; `MicInputSource` espera a esos rasgos (~25 ms, no afecta al tiempo juzgado) y
   emite el golpe con su carril.
+- Acentos: con esos mismos rasgos, el detector manda `strikeDb`, el máximo del nivel RMS por
+  bloque en los primeros ~25 ms del golpe (más estable que el pico de una sola muestra).
+  `src/lib/mic/accent.ts` guarda los ejemplos de la calibración, pone el umbral en el punto medio
+  entre las medianas de los golpes normales y los acentuados y exige al menos 4 dB de diferencia.
+  `MicInputSource` espera a `strikeDb` y emite el golpe con `accent: true/false`; el juez
+  (`Judge.hit(lane, t, accent)`) cuenta los acentos aparte (`stats().accents`).
 
 ## Probar sin micrófono
 
 Chrome puede usar un WAV como micrófono:
 
 ```bash
-npm run mic:wav -- --bpm 90 --kind caixa --out /tmp/heroleiros-mic.wav
+npm run mic:wav -- --bpm 90 --kind caixa --accent-every 4 --accent-db 8 --out /tmp/heroleiros-mic.wav
 google-chrome --use-fake-ui-for-media-stream --use-fake-device-for-media-stream \
   --use-file-for-fake-audio-capture=/tmp/heroleiros-mic.wav http://127.0.0.1:43147
 ```
@@ -79,6 +111,9 @@ golpes sintéticos de surdo, caixa, tamborim y clic con ruido de sala (`src/lib/
   fase B es experimental: está probada con golpes sintéticos de surdo (abierto, apagado, aro),
   no con grabaciones reales del grupo; golpes con timbres parecidos se confundirán.
 - Sin auriculares, el acompañamiento y el metrónomo pueden contar como golpes de más.
+- Los acentos se distinguen por fuerza: si te acercas o te alejas del micrófono durante la partida,
+  o cambias de baquetas, el umbral calibrado deja de valer. Un golpe normal que cae justo en la cola
+  de un acento fuerte (sobre todo en el surdo) puede no detectarse.
 - En salas muy ruidosas o con mucho eco hay que bajar la sensibilidad o subir el tiempo mínimo
   entre golpes; un golpe muy flojo justo después de uno fuerte (dentro de su cola) puede perderse.
 - La latencia de entrada que declaran los navegadores no siempre es fiable: calibra en cada

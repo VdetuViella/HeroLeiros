@@ -22,8 +22,8 @@ export interface PracticeSettings {
 export const MIN_RATE = 0.5;
 export const MAX_RATE = 1;
 
-export function defaultPracticeSettings(chart: Chart): PracticeSettings {
-  return {
+export function defaultPracticeSettings(chart: Chart, overrides: Partial<PracticeSettings> = {}): PracticeSettings {
+  const base: PracticeSettings = {
     instrument: chart.tracks[0]?.instrument ?? "surdo1",
     rate: 1,
     rangeMode: "cancion",
@@ -36,11 +36,16 @@ export function defaultPracticeSettings(chart: Chart): PracticeSettings {
     guide: "silenciada",
     hitSounds: true,
   };
+  return { ...base, ...overrides };
 }
 
 /** Corrige ajustes guardados que ya no encajan con la canción (p. ej. tras editarla). */
-export function sanitizeSettings(chart: Chart, raw: Partial<PracticeSettings> | null): PracticeSettings {
-  const base = defaultPracticeSettings(chart);
+export function sanitizeSettings(
+  chart: Chart,
+  raw: Partial<PracticeSettings> | null,
+  defaults: Partial<PracticeSettings> = {},
+): PracticeSettings {
+  const base = defaultPracticeSettings(chart, defaults);
   if (!raw) return base;
   const merged = { ...base, ...raw };
   if (!getTrack(chart, merged.instrument)) merged.instrument = base.instrument;

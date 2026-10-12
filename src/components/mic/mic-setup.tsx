@@ -11,9 +11,10 @@ import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import type { InstrumentId, StrokeId } from "@/lib/chart/types";
 import { MicInput, listMicrophones, toMicError } from "@/lib/mic/mic-input";
-import { REFRACTORY_RANGE, detectorSettingsFrom, type MicPreferences } from "@/lib/mic/settings";
+import { REFRACTORY_RANGE, detectorSettingsFrom, type MicPreferences, type MicPreferencesUpdate } from "@/lib/mic/settings";
 
 import { MicLevelMeter } from "./mic-level-meter";
+import { AccentTrainer } from "./accent-trainer";
 import { StrokeTrainer } from "./stroke-trainer";
 
 const NOISE_SECONDS = 3;
@@ -27,7 +28,7 @@ interface Monitor {
 
 interface MicSetupProps {
   prefs: MicPreferences;
-  onChange: (patch: Partial<MicPreferences>) => void;
+  onChange: (update: MicPreferencesUpdate) => void;
   latencyMs: number;
   instrument: InstrumentId;
   lanes: StrokeId[];
@@ -229,6 +230,13 @@ export function MicSetup({ prefs, onChange, latencyMs, instrument, lanes }: MicS
         mic={status === "activo" ? (monitor?.mic ?? null) : null}
         instrument={instrument}
         lanes={lanes}
+        prefs={prefs}
+        onChange={onChange}
+      />
+
+      <AccentTrainer
+        mic={status === "activo" ? (monitor?.mic ?? null) : null}
+        instrument={instrument}
         prefs={prefs}
         onChange={onChange}
       />

@@ -12,6 +12,13 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 
 ## Qué está hecho
 
+### Escuela
+
+- `/escuela`: 23 ejercicios de caixa (14) y surdo (9) en 7 niveles, más 2 rutinas de calentamiento. Rudimentos de la PAS (sencillos, dobles, paradiddles, redoble de cinco), «8 on a hand», accent-tap, acentos desplazados, levadas de samba y samba-reggae, marcación de primeira y segunda, corte de terceira, contratiempo y breques. Fuentes en [`escuela.md`](escuela.md).
+- Escalones de tempo (3★ a velocidad normal abren el siguiente), niveles que se abren con la mitad del anterior, recomendación de «Siguiente», modo libre.
+- Digitación D/I en el carril y en la partitura. Metrónomo encendido por defecto. Acompañamiento de surdos en los ejercicios de aplicación.
+- Los ejercicios se escriben como patrones de texto (`src/lib/exercises/catalog.ts`) y se convierten en `Chart` sin MIDI (`src/lib/chart/build.ts`).
+
 ### Canciones y MIDI
 
 - Convención de pistas y golpes: [`convencion-midi.md`](convencion-midi.md).
@@ -41,13 +48,14 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 - Fase A (por defecto): se juzga **solo el tiempo**. Cualquier golpe vale para cualquier carril.
 - AudioWorklet (energía + flujo espectral, umbral adaptativo, tiempo muerto).
 - Prueba de nivel, medición de ruido de sala, sensibilidad, aviso de auriculares.
+- **Acentos**: el detector mide la fuerza de cada golpe; se calibra grabando golpes normales y acentuados (umbral entre sus medianas, aviso si no se distinguen). En la partida, cada acierto dice si el acento coincide con la partitura («Acento ✓», «¡Falta acento!», «Sin acento») y los resultados traen su propio apartado. No cambia la puntuación. Probado con golpes sintéticos (caixa, mesa, surdo, con ruido), no con el grupo real.
 - Fase B **experimental**: distinguir abierto / apagado / aro tras entrenar un perfil. Probada con golpes sintéticos, no con el grupo real.
 - Guía: [`microfono.md`](microfono.md).
 
 ### Partitura
 
-- VexFlow, pentagrama de percusión de una línea, cuantización a semicorcheas o tresillos de corchea.
-- Vistas **Carril / Partitura / Dividida**, cursor sincronizado, bucle eligiendo compases.
+- VexFlow, pentagrama de percusión de una línea. Cuantización por pulso: semicorcheas, tresillos de corchea, seisillos y fusas en compás simple; en 6/8 y 12/8, agrupada por negras con puntillo.
+- Vistas **Carril / Partitura / Dividida**, cursor sincronizado, bucle eligiendo compases en la partitura: durante la partida, en pausa o desde los ajustes previos («Elegir en la partitura»).
 - Leyenda de símbolos en la partida y en [`partitura.md`](partitura.md).
 
 ### Cuentas y progreso
@@ -61,7 +69,8 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 
 ### PWA, tests y despliegue preparado
 
-- Manifiesto, iconos, service worker que cacha samples y páginas de canciones (no intercepta `/api/`; el worklet va network-first).
+- Manifiesto, iconos, service worker que cacha samples, páginas de canciones y los archivos de la app (no intercepta `/api/`; el worklet va network-first).
+- **Ensayar sin conexión**: botón en la portada que guarda todo el repertorio (páginas, chunks de la app y grabaciones) en el dispositivo, con progreso y aviso si falta algo.
 - Vitest (parser, mapeo, juez, micrófono, partitura, cuentas con PGlite). Playwright: canción → teclado → resultados, toggle de partitura, selector de mic, aviso de cuentas sin DB, manifiesto y service worker.
 - Guía Vercel + Neon en el [README](../README.md#despliegue-vercel--neon). El código está listo; **no hay un despliegue de producción permanente** (hace falta `vercel login` y un proyecto Neon).
 

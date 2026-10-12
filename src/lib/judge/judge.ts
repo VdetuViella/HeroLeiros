@@ -7,6 +7,8 @@ import {
 } from "./scoring";
 import {
   DEFAULT_WINDOWS,
+  type AccentResult,
+  type AccentStats,
   type ExpectedNote,
   type HitJudgement,
   type JudgeEvent,
@@ -35,6 +37,10 @@ export interface JudgeOptions {
  *
  * `hit(null, t)` juzga solo por tiempo (cualquier carril vale), pensado para
  * fuentes como el micrófono que no distinguen el golpe.
+ *
+ * Si el golpe trae `accent` (la entrada mide su fuerza), además se compara con
+ * el acento de la nota. Los acentos se cuentan aparte: no tocan la puntuación,
+ * el combo ni la precisión de tiempo.
  */
 export class Judge {
   readonly windows: JudgeWindows;
@@ -49,6 +55,7 @@ export class Judge {
   private offsetSum = 0;
   private offsetCount = 0;
   private readonly counts: JudgementCounts = emptyCounts();
+  private readonly accentTally = { judged: 0, correct: 0, missed: 0, extra: 0, accentNotes: 0, accentsGiven: 0 };
   private readonly sectionCounts: JudgementCounts[];
 
   constructor(options: JudgeOptions = {}) {
@@ -66,7 +73,7 @@ export class Judge {
       throw new Error("Judge.addNotes: las notas deben añadirse en orden de tiempo.");
     }
     for (const note of sorted) {
-      this.states.push({ note, result: null, offset: null, resolvedAt: null });
+      this.states.push({ note, result: null, accentResult: null, offset: null, resolvedAt: null });
     }
   }
 
@@ -74,8 +81,11 @@ export class Judge {
     return this.states;
   }
 
-  /** Juzga un golpe. `lane = null` acepta cualquier carril. */
-  hit(lane: number | null, time: number): JudgeEvent {
+  /**
+   * Juzga un golpe. `lane = null` acepta cualquier carril. `accent` indica si
+   * el golpe sonó acentuado; `undefined` si la entrada no lo sabe.
+   */
+  hit(lane: number | null, time: number, accent?: boolean): JudgeEvent {
     const { regular } = this.windows;
     let best: NoteState | null = null;
     let nearestOther: NoteState | null = null;
@@ -93,7 +103,7 @@ export class Judge {
       }
     }
 
-    if (best) return this.resolveHit(best, time);
+    if (best) return this.resolveHit(best, time, accent);
 
     this.breakCombo();
     if (nearestOther && lane !== null) {
@@ -146,16 +156,42 @@ export class Judge {
         notes: counts.perfecto + counts.bien + counts.regular + counts.fallo,
         accuracy: accuracyFor(counts, this.penalizeStrayHits),
       })),
+      accents: this.accentStats(),
     };
   }
 
-  private resolveHit(state: NoteState, time: number): JudgeEvent {
+  private accentStats(): AccentStats | null {
+    const tally = this.accentTally;
+    if (tally.judged === 0) return null;
+    return { ...tally, accuracy: tally.correct / tally.judged };
+  }
+
+  private judgeAccent(note: ExpectedNote, accent: boolean): AccentResult {
+    const wanted = note.accent === true;
+    const tally = this.accentTally;
+    tally.judged += 1;
+    if (wanted) tally.accentNotes += 1;
+    if (wanted && accent) tally.accentsGiven += 1;
+    if (wanted === accent) {
+      tally.correct += 1;
+      return "bien";
+    }
+    if (wanted) {
+      tally.missed += 1;
+      return "perdido";
+    }
+    tally.extra += 1;
+    return "de-mas";
+  }
+
+  private resolveHit(state: NoteState, time: number, accent: boolean | undefined): JudgeEvent {
     const offset = time - state.note.time;
     const judgement = this.classify(Math.abs(offset));
     const multiplier = multiplierFor(this.combo);
     const points = POINTS[judgement] * multiplier;
 
     state.result = judgement;
+    state.accentResult = accent === undefined ? null : this.judgeAccent(state.note, accent);
     state.offset = offset;
     state.resolvedAt = time;
     this.combo += 1;
@@ -166,7 +202,17 @@ export class Judge {
     this.bump(judgement, state.note.section);
     this.skipResolved();
 
-    return { kind: "acierto", note: state.note, judgement, offset, time, combo: this.combo, multiplier, points };
+    return {
+      kind: "acierto",
+      note: state.note,
+      judgement,
+      offset,
+      time,
+      combo: this.combo,
+      multiplier,
+      points,
+      accent: state.accentResult,
+    };
   }
 
   private classify(distance: number): HitJudgement {

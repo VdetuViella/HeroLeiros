@@ -40,6 +40,8 @@ export interface GameMic {
   input: MicInput;
   /** Fase B: los golpes llevan carril según su timbre. */
   classifies: boolean;
+  /** Los golpes dicen si sonaron acentuados (acentos calibrados). */
+  accents?: boolean;
 }
 
 // VexFlow solo hace falta al abrir la partitura y necesita el DOM.
@@ -104,6 +106,16 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
   const selection = picked?.session === session ? picked.range : null;
   const setSelection = useCallback((range: BarRange | null) => setPicked({ session, range }), [session]);
   const wide = mode !== "carril";
+
+  // En pausa, «Elegir compases» reduce el menú a una barra para poder tocar la
+  // partitura (bucle A-B) sin reanudar. Cada pausa nueva vuelve a abrir el menú.
+  const [pauseMenuHidden, setPauseMenuHidden] = useState(false);
+  const [wasPaused, setWasPaused] = useState(paused);
+  if (wasPaused !== paused) {
+    setWasPaused(paused);
+    if (!paused) setPauseMenuHidden(false);
+  }
+  const pickingBars = paused && pauseMenuHidden && wide;
 
   const changeMode = (next: GameViewMode) => {
     setMode(next);
@@ -214,6 +226,25 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
             wide ? "lg:col-start-2 lg:row-span-2 lg:row-start-1" : "lg:order-2",
           )}
         >
+          {pickingBars && (
+            <div
+              role="status"
+              className="mb-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-background/95 px-3 py-1.5"
+            >
+              <p className="text-sm">
+                <span className="font-medium">En pausa.</span>{" "}
+                <span className="text-muted-foreground">Toca un compás (A) y luego otro (B).</span>
+              </p>
+              <div className="flex shrink-0 items-center gap-1.5">
+                <Button size="sm" onClick={() => void session.resume()}>
+                  <Play /> Continuar
+                </Button>
+                <Button size="sm" variant="ghost" onClick={() => setPauseMenuHidden(false)}>
+                  Más opciones
+                </Button>
+              </div>
+            </div>
+          )}
           <div className={cn("flex min-h-0 flex-1 gap-3", mode === "dividida" ? "flex-col lg:flex-row" : "flex-col")}>
             {mode !== "partitura" && (
               <div
@@ -260,13 +291,18 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
               <span className="rounded-full bg-background/70 px-3 py-1 text-sm text-muted-foreground">Prepárate…</span>
             </div>
           )}
-          {paused && (
+          {paused && !pickingBars && (
             <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm">
               <div className="flex w-64 flex-col gap-2 text-center">
                 <p className="mb-2 font-heading text-2xl font-bold">En pausa</p>
                 <Button size="lg" onClick={() => void session.resume()}>
                   <Play /> Continuar
                 </Button>
+                {wide && (
+                  <Button size="lg" variant="secondary" onClick={() => setPauseMenuHidden(true)}>
+                    <Repeat /> Elegir compases en la partitura
+                  </Button>
+                )}
                 <Button size="lg" variant="secondary" onClick={onRestart}>
                   <RotateCcw /> Empezar de nuevo
                 </Button>
@@ -310,6 +346,13 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
             <MiniCount label="De más" value={stats.counts.extra} />
             <MiniCount label="Carril" value={stats.counts.carrilEquivocado} className="text-orange-400" />
           </div>
+          {stats.accents && (
+            <div className="hidden grid-cols-3 gap-2 lg:grid" aria-label="Acentos">
+              <MiniCount label="Acentos" value={stats.accents.accentsGiven} className="text-green-400" />
+              <MiniCount label="Faltan" value={stats.accents.missed} className="text-pink-400" />
+              <MiniCount label="Sin acento" value={stats.accents.extra} className="text-orange-400" />
+            </div>
+          )}
         </aside>
       </div>
 
@@ -320,6 +363,7 @@ export function GameView({ session, chart, keyLabels, touch, mic, onRestart, onE
               <Mic className="size-4 text-primary" /> Micrófono activo
               <span className="ml-auto text-xs font-normal text-muted-foreground">
                 {mic.classifies ? "Cada golpe va a su carril (experimental)" : "Cualquier golpe vale: cuenta el tiempo"}
+                {mic.accents ? " · con acentos" : ""}
               </span>
             </p>
             <MicLevelMeter mic={mic.input} />

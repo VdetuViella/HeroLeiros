@@ -21,19 +21,22 @@ Estas piezas son las que cierran el producto del plan. Sin ellas se puede **prob
 ## Mejoras importantes (cuando ya se ensaye)
 
 5. **Fase B del micrófono con golpes reales.**  
-   Distinguir abierto / apagado / aro está detrás de un interruptor experimental y solo se ha entrenado con señales sintéticas de surdo. Hace falta grabar perfiles con el grupo y, si no aguanta, dejar la fase A (solo tiempo) como modo recomendado.
+   Distinguir abierto / apagado / aro está detrás de un interruptor experimental y solo se ha entrenado con señales sintéticas de surdo. Hace falta grabar perfiles con el grupo y, si no aguanta, dejar la fase A (solo tiempo) como modo recomendado. Lo mismo con los **acentos**: comprobar con baquetas en la mesa, caixa y surdo reales que la diferencia de fuerza se mide bien a la distancia habitual del móvil.
+   Los acentos de cada partida aún no se guardan en el servidor (hace falta una columna nueva y su migración con `npm run db:generate`); se ven en los resultados.
 
 6. **Cuentas en producción.**  
    Invitar a los integrantes con el enlace del director, comprobar que las partidas suben (incluida la cola sin conexión) y que `/director` refleja el avance. Ajustar textos o el flujo de “Dirijo un grupo” si en el primer ensayo se traba.
 
-7. **Partitura más fiel en ritmos raros.**  
-   Hoy: semicorcheas y tresillos de corchea. Faltan tresillos de semicorchea, fusas, redobles, y agrupar 6/8 y 12/8 por negras con puntillo. Solo duele si el repertorio usa eso.
+7. **Redobles en la partitura.**  
+   Ya se escriben semicorcheas, tresillos de corchea, seisillos, fusas y 6/8 o 12/8 agrupados por negras con puntillo. Falta un símbolo de redoble (trémolo) y soportar 3/8 y 9/8, que hoy el parser redondea a negras enteras. Solo duele si el repertorio usa eso.
+
+8. **Escuela: más contenido y probarla con el grupo.**  
+   Faltan ejercicios de repinique, tamborim, agogô y chocalho; flams y drags (necesitan juzgar notas de adorno); y que el director pueda añadir sus propios ejercicios sin tocar código. Conviene revisar con alguien del grupo los tempos de cada escalón y el reparto abierto/tapado de los surdos.
 
 ## Limitaciones conocidas (no bloquean el ensayo)
 
-- En pausa, la capa de pausa tapa la partitura: no se pueden marcar compases hasta reanudar o usar los ajustes de bucle.
-- El bucle A-B desde la partitura es en la pantalla de juego, no en los ajustes previos. En móvil, arrastrar en vertical desplaza el pentagrama; lo fiable es tocar A y luego B.
-- El service worker no precachea el MIDI en crudo (las canciones van en el HTML de `/canciones/…`).
+- En móvil, arrastrar en vertical sobre la partitura la desplaza; para elegir compases lo fiable es tocar A y luego B.
+- Sin red se puede tocar todo lo descargado, pero las partidas con cuenta esperan en la cola hasta que vuelve la conexión, y `/progreso` y `/director` necesitan red.
 - Playwright no abre un micrófono real ni hace login con Postgres; `npm test` usa PGlite y no necesita Docker.
 - No hay tests automáticos del dibujo VexFlow (sí de la cuantización y el ritmo).
 - En iOS la latencia de audio es mayor; hay que calibrar y usar auriculares con cable.

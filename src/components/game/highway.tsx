@@ -212,7 +212,23 @@ function drawNote(
   ctx.fillStyle = "rgba(255,255,255,0.35)";
   roundRect(ctx, cx - w / 2 + 6, y - h / 2 + 3, w - 12, h / 3, h / 6);
   ctx.fill();
+  if (note.hand) {
+    // Digitación de los ejercicios: D (derecha) o I (izquierda), dentro de la nota.
+    ctx.fillStyle = result === "fallo" ? "rgba(255,255,255,0.6)" : "rgba(10,10,10,0.85)";
+    ctx.font = `800 ${note.accent ? 13 : 11}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(note.hand, cx, y + 1);
+  }
   ctx.globalAlpha = 1;
+}
+
+/** Segunda etiqueta, más pequeña, con el acento (solo si la entrada lo mide). */
+function accentLabel(event: FeedbackEvent["event"]): { text: string; color: string } | null {
+  if (event.kind !== "acierto" || event.accent === null) return null;
+  if (event.accent === "perdido") return { text: "¡Falta acento!", color: "#f472b6" };
+  if (event.accent === "de-mas") return { text: "Sin acento", color: "#fb923c" };
+  return event.note.accent ? { text: "Acento ✓", color: "#4ade80" } : null;
 }
 
 function drawFeedback(
@@ -259,6 +275,12 @@ function drawFeedback(
     // Golpes sin carril (micrófono): la etiqueta va en el centro del carril entero.
     const x = lane === null ? (laneWidth * laneCount) / 2 : lane * laneWidth + laneWidth / 2;
     ctx.fillText(style.text, x, hitY - 40 - progress * 30);
+    const accent = accentLabel(event);
+    if (accent) {
+      ctx.fillStyle = accent.color;
+      ctx.font = "700 12px system-ui, sans-serif";
+      ctx.fillText(accent.text, x, hitY - 22 - progress * 30);
+    }
   }
   ctx.globalAlpha = 1;
 }

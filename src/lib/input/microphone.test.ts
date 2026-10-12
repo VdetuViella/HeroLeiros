@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { MicFeaturesEvent, MicLevelEvent, MicOnsetEvent } from "../mic/mic-input";
 import type { StrokeFeatures } from "../mic/onset-detector";
+import { AccentDetector } from "../mic/accent";
 import { StrokeClassifier } from "../mic/stroke-classifier";
 import { MicInputSource } from "./microphone";
 import type { InputHit } from "./types";
@@ -30,8 +31,8 @@ class FakeMic {
   emit(time: number, velocity = 0.5) {
     for (const listener of this.onsets) listener({ time, onset: { frame: Math.round(time * 48000), peakDb: -10, riseDb: 20, velocity } });
   }
-  emitFeatures(time: number, features: StrokeFeatures) {
-    for (const listener of this.features) listener({ frame: Math.round(time * 48000), features });
+  emitFeatures(time: number, features: StrokeFeatures, strikeDb: number | null = null) {
+    for (const listener of this.features) listener({ frame: Math.round(time * 48000), features, strikeDb });
   }
 }
 
@@ -107,5 +108,67 @@ describe("MicInputSource", () => {
     mic.emit(4.9);
     expect(hits).toHaveLength(1);
     expect(hits[0].lane).toBeNull();
+  });
+
+  describe("acentos", () => {
+    const FEATURES: StrokeFeatures = [9, 0.2, 0.2, 1];
+
+    it("con los acentos calibrados, espera a la fuerza del golpe y dice si fue acento", () => {
+      const mic = new FakeMic();
+      const source = new MicInputSource(mic, engine, { accents: new AccentDetector(-25) });
+      const hits: InputHit[] = [];
+      source.start((hit) => hits.push(hit));
+
+      mic.emit(4.5);
+      expect(hits).toHaveLength(0);
+      mic.emitFeatures(4.5, FEATURES, -20);
+      mic.emit(4.75);
+      mic.emitFeatures(4.75, FEATURES, -31);
+
+      expect(source.lanesAware).toBe(false);
+      expect(hits.map((h) => [h.lane, h.accent])).toEqual([
+        [null, true],
+        [null, false],
+      ]);
+      // El tiempo es el del ataque, no el de los rasgos.
+      expect(hits[0].time).toBeCloseTo(4.45, 6);
+    });
+
+    it("sin calibrar no pone acento", () => {
+      const mic = new FakeMic();
+      const source = new MicInputSource(mic, engine);
+      const hits: InputHit[] = [];
+      source.start((hit) => hits.push(hit));
+      mic.emit(4.5);
+      expect(hits).toHaveLength(1);
+      expect("accent" in hits[0]).toBe(false);
+    });
+
+    it("si el worklet no manda la fuerza (versión vieja), el golpe sale sin acento", () => {
+      const mic = new FakeMic();
+      const source = new MicInputSource(mic, engine, { accents: new AccentDetector(-25) });
+      const hits: InputHit[] = [];
+      source.start((hit) => hits.push(hit));
+      mic.emit(4.5);
+      mic.emitFeatures(4.5, FEATURES, null);
+      expect(hits).toHaveLength(1);
+      expect(hits[0].accent).toBeUndefined();
+    });
+
+    it("con fase B y acentos a la vez, el golpe lleva carril y acento", () => {
+      const mic = new FakeMic();
+      const classifier = new StrokeClassifier({
+        samples: [
+          [[7, 0.8, 0.01, 0.5], [7.1, 0.82, 0.01, 0.6], [6.9, 0.79, 0.02, 0.4], [7, 0.81, 0.01, 0.5]],
+          [[10, 0.05, 0.5, 2], [10.1, 0.04, 0.52, 2.1], [9.9, 0.06, 0.48, 1.9], [10, 0.05, 0.5, 2]],
+        ],
+      });
+      const source = new MicInputSource(mic, engine, { classifier, accents: new AccentDetector(-25) });
+      const hits: InputHit[] = [];
+      source.start((hit) => hits.push(hit));
+      mic.emit(4.5);
+      mic.emitFeatures(4.5, [10, 0.05, 0.5, 2], -18);
+      expect(hits.map((h) => [h.lane, h.accent])).toEqual([[1, true]]);
+    });
   });
 });

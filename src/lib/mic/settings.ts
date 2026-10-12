@@ -1,5 +1,6 @@
 import { INSTRUMENT_IDS, type InstrumentId, type StrokeId } from "../chart/types";
 import { readLocal, writeLocal } from "../settings/local";
+import { AccentDetector, isAccentProfile, type AccentProfile } from "./accent";
 import { DEFAULT_DETECTOR_SETTINGS, type DetectorSettings, type NoiseProfile } from "./onset-detector";
 import { StrokeClassifier, emptyProfile, isProfileReady, isStrokeFeatures, type StrokeProfile } from "./stroke-classifier";
 
@@ -16,12 +17,23 @@ export interface MicPreferences {
   /** Fase B (experimental): distinguir el tipo de golpe con el perfil entrenado. */
   classifyStrokes: boolean;
   strokeProfiles: Partial<Record<InstrumentId, SavedStrokeProfile>>;
+  /** Juzgar los acentos según la fuerza de cada golpe, con el umbral calibrado. */
+  detectAccents: boolean;
+  /** Golpes normales y acentuados grabados para calibrar, por instrumento. */
+  accentProfiles: Partial<Record<InstrumentId, AccentProfile>>;
 }
 
 /** Perfil de timbre guardado junto con los golpes (carriles) para los que se entrenó. */
 export interface SavedStrokeProfile extends StrokeProfile {
   strokes: StrokeId[];
 }
+
+/**
+ * Cambio de preferencias: un objeto, o una función que lo calcula a partir de
+ * las preferencias actuales (para cambios seguidos, como grabar golpes, sin
+ * pisarse aunque lleguen antes de volver a pintar).
+ */
+export type MicPreferencesUpdate = Partial<MicPreferences> | ((current: MicPreferences) => Partial<MicPreferences>);
 
 export const DEFAULT_MIC_PREFERENCES: MicPreferences = {
   deviceId: null,
@@ -31,6 +43,8 @@ export const DEFAULT_MIC_PREFERENCES: MicPreferences = {
   headphones: false,
   classifyStrokes: false,
   strokeProfiles: {},
+  detectAccents: false,
+  accentProfiles: {},
 };
 
 export const REFRACTORY_RANGE = { min: 30, max: 200 } as const;
@@ -54,7 +68,25 @@ export function sanitizeMicPreferences(raw: unknown): MicPreferences {
     headphones: v.headphones === true,
     classifyStrokes: v.classifyStrokes === true,
     strokeProfiles: sanitizeProfiles(v.strokeProfiles),
+    detectAccents: v.detectAccents === true,
+    accentProfiles: sanitizeAccentProfiles(v.accentProfiles),
   };
+}
+
+function sanitizeAccentProfiles(raw: unknown): Partial<Record<InstrumentId, AccentProfile>> {
+  if (!raw || typeof raw !== "object") return {};
+  const out: Partial<Record<InstrumentId, AccentProfile>> = {};
+  for (const [instrument, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!(INSTRUMENT_IDS as readonly string[]).includes(instrument) || !isAccentProfile(value)) continue;
+    out[instrument as InstrumentId] = { normal: [...value.normal], accented: [...value.accented] };
+  }
+  return out;
+}
+
+/** Detector de acentos para la partida, o `null` si está apagado o sin calibrar. */
+export function accentDetectorFor(prefs: MicPreferences, instrument: InstrumentId): AccentDetector | null {
+  if (!prefs.detectAccents) return null;
+  return AccentDetector.fromProfile(prefs.accentProfiles[instrument]);
 }
 
 function sanitizeProfiles(raw: unknown): Partial<Record<InstrumentId, SavedStrokeProfile>> {

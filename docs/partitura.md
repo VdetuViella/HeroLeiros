@@ -39,14 +39,22 @@ instrumento que estás tocando.
 ## Cuantización
 
 El MIDI puede venir tocado a mano, con los golpes un poco adelantados o atrasados. Antes de
-dibujarlo, cada negra se ajusta a una de dos rejillas:
+dibujarlo, cada pulso se ajusta a una rejilla. El pulso depende del compás:
 
-- **Semicorcheas** (4 casillas por negra).
-- **Tresillo de corcheas** (3 casillas por negra), que se escribe con un «3» encima.
+- En **compás simple** (2/4, 3/4, 4/4…) el pulso es la **negra**, y las rejillas son:
+  - **Semicorcheas** (4 casillas por negra).
+  - **Tresillo de corcheas** (3 casillas), que se escribe con un «3» encima.
+  - **Tresillo de semicorcheas o seisillo** (6 casillas), con un «6» encima.
+  - **Fusas** (8 casillas).
+- En **6/8 y 12/8** el pulso es la **negra con puntillo**, y las rejillas son corcheas (3 casillas)
+  o semicorcheas (6 casillas), sin «3» porque ya es su subdivisión natural. Un dosillo se escribe
+  como dos corcheas con puntillo.
 
-Para cada negra se elige la rejilla que deja los golpes más cerca de su sitio. El tresillo tiene una
-pequeña penalización, para que una corchea tocada un poco tarde no se convierta en tresillo. Un
-golpe que llega justo antes de un pulso cuenta como golpe en ese pulso.
+Para cada pulso se elige la rejilla que deja los golpes más cerca de su sitio. Las rejillas menos
+habituales tienen una penalización: una corchea tocada un poco tarde no se convierte en tresillo, y
+unas semicorcheas con el **swing** típico de la samba (la segunda y la cuarta un poco tarde) siguen
+escribiéndose como semicorcheas, no como seisillo ni fusas. Un golpe que llega justo antes de un
+pulso cuenta como golpe en ese pulso.
 
 Si dos golpes caen en la misma casilla se escribe solo uno (si uno de ellos era acento, se
 mantiene el acento) y la partitura avisa debajo de cuántos se han juntado. Esto no cambia lo que
@@ -63,14 +71,18 @@ Para ver una canción con tresillos y semicorcheas mezclados, abre **Ijexá de e
   - toca un compás (A) y luego otro (B), o
   - arrastra de un compás a otro con el ratón (o en horizontal con el dedo), o
   - con un tramo marcado, **Mayús + clic** lo amplía.
+- También en **pausa**: pulsa **Elegir compases en la partitura** y el menú de pausa se queda en
+  una barra encima; marca el tramo y pulsa **Practicar en bucle** sin tener que reanudar.
+- Y **antes de empezar**: en los ajustes, elige **Tramo → Compases a medida…** y pulsa **Elegir en
+  la partitura**. Marca A y B en el pentagrama y pulsa **Usar estos compases**.
 - Pulsa **Practicar en bucle**: la partida vuelve a empezar repitiendo esos compases. El tramo se
   guarda en los ajustes de la canción como «Compases a medida» con «Repetir en bucle» activado.
 
 ## Limitaciones
 
-- Solo se escriben semicorcheas y tresillos de corchea; los tresillos de semicorchea, las fusas
-  y los redobles se aproximan a la casilla más cercana.
+- Los **redobles** no tienen símbolo propio: se escriben como los golpes sueltos que trae el MIDI
+  (fusas si son muy rápidos) o se juntan si caen más cerca que una fusa.
 - Los compases sin notas en 4/4 se escriben con un silencio de redonda; en otros compases, con un
-  silencio de negra por pulso.
-- En compases de subdivisión ternaria (6/8, 12/8) la partitura agrupa por negras, no por negras
-  con puntillo.
+  silencio por pulso.
+- 3/8 y 9/8 no tienen un número entero de negras: el parser los redondea y la partitura los trata
+  como compás simple.

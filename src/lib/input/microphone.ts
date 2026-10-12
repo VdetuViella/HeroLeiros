@@ -1,4 +1,5 @@
 import { OutputDelayTracker, micTimeToHeardTime } from "../mic/clock";
+import type { AccentDetector } from "../mic/accent";
 import type { MicInput } from "../mic/mic-input";
 import type { StrokeClassifier } from "../mic/stroke-classifier";
 import type { HitListener, InputSource } from "./types";
@@ -37,6 +38,8 @@ export interface MicInputSourceOptions {
    * carril del tipo de golpe reconocido. Sin él, cualquier golpe vale (fase A).
    */
   classifier?: StrokeClassifier | null;
+  /** Con los acentos calibrados, cada golpe dice si sonó acentuado. */
+  accents?: AccentDetector | null;
 }
 
 interface PendingHit {
@@ -51,6 +54,7 @@ export class MicInputSource implements InputSource {
   readonly lanesAware: boolean;
   private readonly closeOnStop: boolean;
   private readonly classifier: StrokeClassifier | null;
+  private readonly accents: AccentDetector | null;
   private unsubscribers: (() => void)[] = [];
   private pending: PendingHit | null = null;
 
@@ -61,31 +65,46 @@ export class MicInputSource implements InputSource {
   ) {
     this.closeOnStop = options.closeOnStop ?? true;
     this.classifier = options.classifier ?? null;
+    this.accents = options.accents ?? null;
     this.lanesAware = this.classifier !== null;
+  }
+
+  /** Si hay que esperar al timbre y la fuerza del golpe (~25 ms; no cambia el tiempo juzgado). */
+  private get waitsForFeatures(): boolean {
+    return this.classifier !== null || this.accents !== null;
   }
 
   start(listener: HitListener): void {
     this.stopListening();
     const clock = createMicClock(this.engine, this.mic);
-    const emit = (hit: PendingHit, lane: number | null) =>
-      listener({ lane, time: clock.toHeard(hit.time), source: this.kind, velocity: hit.velocity });
+    const emit = (hit: PendingHit, lane: number | null, accent?: boolean) =>
+      listener({
+        lane,
+        time: clock.toHeard(hit.time),
+        source: this.kind,
+        velocity: hit.velocity,
+        ...(accent === undefined ? {} : { accent }),
+      });
 
     this.unsubscribers = [
       clock.dispose,
       this.mic.onOnset(({ onset, time }) => {
         const hit = { frame: onset.frame, time, velocity: onset.velocity };
-        if (!this.classifier) {
+        if (!this.waitsForFeatures) {
           emit(hit, null);
           return;
         }
+        // Sin rasgos del golpe anterior (no debería pasar): sale sin carril ni acento.
         if (this.pending) emit(this.pending, null);
         this.pending = hit;
       }),
-      this.mic.onFeatures(({ frame, features }) => {
-        if (!this.classifier || !this.pending || this.pending.frame !== frame) return;
+      this.mic.onFeatures(({ frame, features, strikeDb }) => {
+        if (!this.waitsForFeatures || !this.pending || this.pending.frame !== frame) return;
         const hit = this.pending;
         this.pending = null;
-        emit(hit, this.classifier.classify(features).lane);
+        const lane = this.classifier ? this.classifier.classify(features).lane : null;
+        const accent = this.accents && strikeDb !== null ? this.accents.isAccent(strikeDb) : undefined;
+        emit(hit, lane, accent);
       }),
     ];
   }

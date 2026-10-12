@@ -3,16 +3,21 @@
 Juego de ritmo tipo Guitar Hero para ensayar batucada. Cada integrante elige canción e
 instrumento (surdos, caixa, repinique, tamborim, agogô, chocalho), toca su parte con el
 teclado, la pantalla táctil o el micrófono mientras suena el resto del grupo, y recibe una
-puntuación golpe a golpe.
+puntuación golpe a golpe. En la **Escuela**, además, aprende técnica de caixa y surdo con
+ejercicios por niveles que se van desbloqueando.
 
 | Documento | Contenido |
 | --------- | --------- |
 | [Estado](docs/estado.md) | Qué está hecho, cómo arrancar, mapa del código |
 | [Qué queda](docs/roadmap.md) | Prioridad para el grupo, limitaciones, orden sugerido |
 | [Plan original](docs/plan-desarrollo.md) | Decisiones de producto con las que se construyó |
+| [Escuela](docs/escuela.md) | Ejercicios de caixa y surdo, niveles, fuentes y cómo añadir más |
 
 ## Qué incluye
 
+- **Escuela** (`/escuela`): rudimentos de la PAS, calentamientos y marcación de surdo como
+  niveles de juego, con escalones de tempo, estrellas, digitación D/I y rutinas de calentamiento.
+  Ver [`docs/escuela.md`](docs/escuela.md).
 - **Canciones desde MIDI**: el director deja `song.mid` + `meta.json` en `content/songs/<slug>/`.
   Una pista por instrumento, una nota por tipo de golpe. Ver [`docs/convencion-midi.md`](docs/convencion-midi.md).
 - **Acompañamiento generado desde el MIDI** con Tone.js: cambiar la velocidad (50–100 %) solo
@@ -26,14 +31,17 @@ puntuación golpe a golpe.
 - **Entrada**: teclado (D F J K por defecto, configurable) y pads táctiles multitáctiles.
 - **Micrófono** (fase A): toca tu instrumento de verdad; un AudioWorklet detecta cada golpe y
   se juzga solo el tiempo. Prueba de nivel, ruido de la sala, sensibilidad, aviso de auriculares
-  y calibración con un clic de prueba. Opcional y experimental: distinguir el tipo de golpe
-  con un perfil entrenado (fase B). Ver [`docs/microfono.md`](docs/microfono.md).
+  y calibración con un clic de prueba. **Acentos**: calibrando unos golpes normales y otros
+  acentuados, la partida dice si das los acentos de la partitura (sin cambiar la puntuación).
+  Opcional y experimental: distinguir el tipo de golpe con un perfil entrenado (fase B). Ver
+  [`docs/microfono.md`](docs/microfono.md).
 - **Juez de tiempos**: Perfecto ±35 ms, Bien ±70 ms, Regular ±120 ms, golpes de más y carril
   equivocado; combo, multiplicador ×1–×4, precisión, estrellas y resultado por sección.
 - **Calibración de latencia** por dispositivo y tipo de entrada (`/calibracion`).
 - **Samples opcionales**: si `public/samples/` está vacío, cada golpe se sintetiza en el navegador.
-- **PWA**: instalable en el móvil (manifiesto + iconos). Un service worker cacha samples y páginas
-  de canciones; no intercepta `/api/` ni el worklet del micrófono en modo cache-first.
+- **PWA**: instalable en el móvil (manifiesto + iconos). Un service worker cacha samples, páginas
+  de canciones y los archivos de la app; no intercepta `/api/` ni el worklet del micrófono en modo
+  cache-first. En la portada, **Descargar para ensayar sin conexión** guarda todo el repertorio.
 - **Cuentas y progreso en la nube** (opcional): email y contraseña, roles director/miembro,
   grupos con enlace de invitación, historial y evolución de cada integrante y un panel del
   director con la mejor precisión por canción, la actividad reciente y las secciones con más
@@ -119,8 +127,9 @@ Una pista por instrumento, una nota MIDI por tipo de golpe. Nombres de pista y t
 ## Micrófono
 
 En los ajustes de la canción elige **Micrófono**. Ponte auriculares para que no capte el
-acompañamiento. Calibración de ruido y de latencia en `/calibracion?entrada=microfono`.
-Detalle técnico (AudioWorklet, fase B): [`docs/microfono.md`](docs/microfono.md).
+acompañamiento. Calibración de ruido y de latencia en `/calibracion?entrada=microfono`. Para que
+se juzguen los acentos, activa **Detectar acentos** y graba unos golpes normales y otros acentuados.
+Detalle técnico (AudioWorklet, acentos, fase B): [`docs/microfono.md`](docs/microfono.md).
 
 ## Partitura
 
@@ -131,7 +140,12 @@ seleccionar para practicarlos en bucle. [`docs/partitura.md`](docs/partitura.md)
 
 `src/app/manifest.ts` + iconos en `public/icons/` + `public/sw.js`.
 
-- Cacha `/samples/*` (cache-first) y las páginas `/` y `/canciones/…` (stale-while-revalidate).
+- Cacha `/samples/*` y `/_next/static/*` (cache-first; estos últimos llevan hash y no cambian) y las
+  páginas `/`, `/canciones/…` y `/calibracion` (stale-while-revalidate).
+- **Ensayar sin conexión**: el botón de la portada manda al SW `{ type: "precache", urls }` con la
+  app, todas las canciones y las grabaciones de `samples/manifest.json`. El SW descubre los
+  `/_next/static/…` que referencian el HTML, el CSS y los chunks (también los que se cargan aparte,
+  como la partitura) y avisa del avance. Lógica en `src/lib/offline/repertoire.ts`.
 - El worklet `/worklets/onset-processor.js` va **network-first** para no romper el micrófono
   con un detector viejo. Las rutas `/api/` no se interceptan (auth e intentos).
 - Tras cambiar el service worker, sube la constante `VERSION` en `public/sw.js`.

@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { StrokeFeatures } from "./onset-detector";
+import { MIN_ACCENT_SAMPLES } from "./accent";
 import {
   DEFAULT_MIC_PREFERENCES,
+  accentDetectorFor,
   classifierFor,
   detectorSettingsFrom,
   sanitizeMicPreferences,
@@ -55,5 +57,31 @@ describe("preferencias del micrófono", () => {
     expect(classifierFor(prefs, "surdo1", ["abierto", "aro"])).toBeNull();
     expect(classifierFor({ ...prefs, classifyStrokes: false }, "surdo1", ["abierto", "apagado"])).toBeNull();
     expect(strokeProfileFor(prefs, "caixa", ["abierto", "aro"])).toEqual({ strokes: ["abierto", "aro"], samples: [[], []] });
+  });
+
+  describe("acentos", () => {
+    const normal = Array.from({ length: MIN_ACCENT_SAMPLES }, (_, i) => -30 - i * 0.5);
+    const accented = Array.from({ length: MIN_ACCENT_SAMPLES }, (_, i) => -20 - i * 0.5);
+
+    it("guarda los perfiles válidos y descarta los rotos o de instrumentos desconocidos", () => {
+      const prefs = sanitizeMicPreferences({
+        detectAccents: true,
+        accentProfiles: {
+          caixa: { normal, accented },
+          surdo1: { normal: ["x"], accented: [] },
+          trompeta: { normal, accented },
+        },
+      });
+      expect(prefs.detectAccents).toBe(true);
+      expect(prefs.accentProfiles).toEqual({ caixa: { normal, accented } });
+      expect(sanitizeMicPreferences({ detectAccents: "sí" }).detectAccents).toBe(false);
+    });
+
+    it("solo hay detector si está activado y el instrumento está calibrado", () => {
+      const calibrated = sanitizeMicPreferences({ detectAccents: true, accentProfiles: { caixa: { normal, accented } } });
+      expect(accentDetectorFor(calibrated, "caixa")?.thresholdDb).toBeCloseTo((-30.75 + -20.75) / 2);
+      expect(accentDetectorFor(calibrated, "repinique")).toBeNull();
+      expect(accentDetectorFor({ ...calibrated, detectAccents: false }, "caixa")).toBeNull();
+    });
   });
 });

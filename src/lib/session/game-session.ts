@@ -231,7 +231,7 @@ export class GameSession {
     const source = this.options.inputs.find((input) => input.kind === hit.source);
     const lane = source && !source.lanesAware ? null : hit.lane;
     this.usedSources.add(hit.source);
-    const event = this.judge.hit(lane, judgedTime);
+    const event = this.judge.hit(lane, judgedTime, hit.accent);
     this.pushFeedback(event, visualTime);
     this.emit(event);
   };
@@ -324,6 +324,7 @@ export class GameSession {
           accuracy: s?.accuracy ?? 0,
           counts: s?.counts ?? { perfecto: 0, bien: 0, regular: 0, fallo: 0, extra: 0, carrilEquivocado: 0 },
         })),
+      accents: stats.accents,
       startedAt: (this.startedAt ?? new Date()).toISOString(),
       finishedAt: new Date().toISOString(),
     };

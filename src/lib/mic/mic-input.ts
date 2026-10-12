@@ -47,6 +47,8 @@ export interface MicFeaturesEvent {
   /** Frame del ataque al que corresponden (el mismo que `onset.frame`). */
   frame: number;
   features: StrokeFeatures;
+  /** Fuerza del golpe en dBFS, o `null` si el worklet es de una versión anterior. */
+  strikeDb: number | null;
 }
 
 export interface MicLevelEvent {
@@ -231,7 +233,13 @@ export class MicInput {
         for (const listener of this.levelListeners) listener(message);
         break;
       case "features":
-        for (const listener of this.featureListeners) listener({ frame: message.frame, features: message.features });
+        for (const listener of this.featureListeners) {
+          listener({
+            frame: message.frame,
+            features: message.features,
+            strikeDb: typeof message.strikeDb === "number" && Number.isFinite(message.strikeDb) ? message.strikeDb : null,
+          });
+        }
         break;
       case "noise-profile": {
         const waiters = this.noiseWaiters;

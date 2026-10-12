@@ -22,6 +22,9 @@ export const STROKE_IDS = [
 
 export type StrokeId = (typeof STROKE_IDS)[number];
 
+/** Mano con la que se toca un golpe: derecha o izquierda (digitación). */
+export type Hand = "D" | "I";
+
 export interface ChartNote {
   /** Estable dentro del chart: `<instrumento>-<índice>`. */
   id: string;
@@ -39,6 +42,8 @@ export interface ChartNote {
   accent: boolean;
   /** Nota MIDI original, útil para depurar el mapeo. */
   midi: number;
+  /** Digitación, si el chart la trae (ejercicios de la Escuela). */
+  hand?: Hand;
 }
 
 export interface ChartTrack {

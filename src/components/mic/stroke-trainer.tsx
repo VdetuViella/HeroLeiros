@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Check, Circle, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { STROKES, strokeLabel } from "@/lib/chart/instruments";
 import type { InstrumentId, StrokeId } from "@/lib/chart/types";
 import type { MicInput } from "@/lib/mic/mic-input";
-import { strokeProfileFor, type MicPreferences } from "@/lib/mic/settings";
+import { strokeProfileFor, type MicPreferences, type MicPreferencesUpdate } from "@/lib/mic/settings";
 import { MIN_SAMPLES_PER_LANE, StrokeClassifier, addSample, isProfileReady } from "@/lib/mic/stroke-classifier";
 
 /** Golpes que se graban cada vez que se pulsa «Grabar». */
@@ -20,7 +20,7 @@ interface StrokeTrainerProps {
   instrument: InstrumentId;
   lanes: StrokeId[];
   prefs: MicPreferences;
-  onChange: (patch: Partial<MicPreferences>) => void;
+  onChange: (update: MicPreferencesUpdate) => void;
 }
 
 /**
@@ -28,31 +28,44 @@ interface StrokeTrainerProps {
  * partida intenta llevar cada golpe a su carril.
  */
 export function StrokeTrainer({ mic, instrument, lanes, prefs, onChange }: StrokeTrainerProps) {
-  const [recording, setRecording] = useState<{ lane: number; left: number } | null>(null);
+  const [recording, setRecordingState] = useState<{ lane: number; left: number } | null>(null);
   const [lastGuess, setLastGuess] = useState<{ lane: number; confidence: number } | null>(null);
   const profile = strokeProfileFor(prefs, instrument, lanes);
   const ready = isProfileReady(profile, lanes.length);
   const classifier = useMemo(() => (ready ? new StrokeClassifier(profile) : null), [ready, profile]);
 
+  // Los golpes pueden llegar antes de volver a pintar: la toma se lee de una ref
+  // y cada ejemplo se añade sobre las preferencias actuales.
+  const recordingRef = useRef(recording);
+  const setRecording = useCallback((next: { lane: number; left: number } | null) => {
+    recordingRef.current = next;
+    setRecordingState(next);
+  }, []);
+
   useEffect(() => {
     if (!mic || !prefs.classifyStrokes) return;
     return mic.onFeatures(({ features }) => {
-      if (recording) {
-        const next = addSample(strokeProfileFor(prefs, instrument, lanes), recording.lane, features);
-        onChange({ strokeProfiles: { ...prefs.strokeProfiles, [instrument]: { strokes: [...lanes], samples: next.samples } } });
-        setRecording(recording.left > 1 ? { lane: recording.lane, left: recording.left - 1 } : null);
+      const take = recordingRef.current;
+      if (take) {
+        onChange((current) => {
+          const next = addSample(strokeProfileFor(current, instrument, lanes), take.lane, features);
+          return { strokeProfiles: { ...current.strokeProfiles, [instrument]: { strokes: [...lanes], samples: next.samples } } };
+        });
+        setRecording(take.left > 1 ? { lane: take.lane, left: take.left - 1 } : null);
       } else if (classifier) {
         setLastGuess(classifier.classify(features));
       }
     });
-  }, [mic, prefs, instrument, lanes, recording, classifier, onChange]);
+  }, [mic, prefs.classifyStrokes, instrument, lanes, classifier, onChange, setRecording]);
 
   if (lanes.length < 2) return null;
 
   const clear = () => {
-    const rest = { ...prefs.strokeProfiles };
-    delete rest[instrument];
-    onChange({ strokeProfiles: rest });
+    onChange((current) => {
+      const rest = { ...current.strokeProfiles };
+      delete rest[instrument];
+      return { strokeProfiles: rest };
+    });
     setLastGuess(null);
     setRecording(null);
   };

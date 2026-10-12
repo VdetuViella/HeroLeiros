@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { useMicPreferences } from "@/components/mic/use-mic-preferences";
 import { AudioEngine, type TrackMix } from "@/lib/audio/engine";
@@ -13,7 +13,7 @@ import { defaultKeymap, keyLabel } from "@/lib/input/keymap";
 import { MicInputSource } from "@/lib/input/microphone";
 import { TouchInputSource } from "@/lib/input/touch";
 import { MicInput, toMicError } from "@/lib/mic/mic-input";
-import { classifierFor, detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
+import { accentDetectorFor, classifierFor, detectorSettingsFrom, type InputMethod } from "@/lib/mic/settings";
 import type { BarRange } from "@/lib/notation/layout";
 import { GameSession } from "@/lib/session/game-session";
 import {
@@ -38,7 +38,22 @@ interface SongPlayerProps {
    * `reportAttempt` (hoy en local; mañana `POST /api/attempts`).
    */
   onAttemptComplete?: (result: AttemptResult) => void;
+  /** Ajustes de partida por defecto (si no hay nada guardado), p. ej. metrónomo en los ejercicios. */
+  initialSettings?: Partial<PracticeSettings>;
+  /** Enlace para volver (por defecto, a la lista de canciones). */
+  backLink?: BackLink;
+  /** Contenido extra en la pantalla de ajustes, bajo el título (p. ej. la ficha de un ejercicio). */
+  setupIntro?: ReactNode;
+  /** Contenido extra en los resultados, antes de los botones. */
+  resultsExtra?: ReactNode;
 }
+
+export interface BackLink {
+  href: string;
+  label: string;
+}
+
+const DEFAULT_BACK_LINK: BackLink = { href: "/", label: "Canciones" };
 
 interface Running {
   session: GameSession;
@@ -52,9 +67,18 @@ function releaseRunning(running: Running | null): Promise<void> {
   return running.session.discard().finally(() => running.mic?.input.close());
 }
 
-export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
+export function SongPlayer({
+  chart,
+  onAttemptComplete,
+  initialSettings,
+  backLink = DEFAULT_BACK_LINK,
+  setupIntro,
+  resultsExtra,
+}: SongPlayerProps) {
   const [phase, setPhase] = useState<Phase>("ajustes");
-  const [settings, setSettings] = useState<PracticeSettings>(() => defaultPracticeSettings(chart));
+  const [settings, setSettings] = useState<PracticeSettings>(() => defaultPracticeSettings(chart, initialSettings));
+  // Solo cuentan los del primer render: un objeto nuevo en cada render no debe reiniciar los ajustes.
+  const initialSettingsRef = useRef(initialSettings);
   const [mix, setMix] = useState<MixState>({});
   const [keymaps, setKeymaps] = useState<Record<number, string[]>>({});
   const [latencyMs, setLatencyMs] = useState<Record<InputMethod, number>>({ teclado: 0, microfono: 0 });
@@ -82,7 +106,9 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
   // Los ajustes guardados viven en localStorage: se leen tras montar para no romper la hidratación.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSettings(sanitizeSettings(chart, readLocal<Partial<PracticeSettings> | null>(`ajustes:${chart.slug}`, null)));
+    setSettings(
+      sanitizeSettings(chart, readLocal<Partial<PracticeSettings> | null>(`ajustes:${chart.slug}`, null), initialSettingsRef.current),
+    );
     setMix(readLocal<MixState>(`mezcla:${chart.slug}`, {}));
     setKeymaps(Object.fromEntries([1, 2, 3, 4].map((n) => [n, loadKeymap(n)])));
     setLatencyMs({ teclado: loadLatencyMs("teclado"), microfono: loadLatencyMs("microfono") });
@@ -184,6 +210,7 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
       const touch = new TouchInputSource(clock);
       const playingTrack = getTrack(chart, current.instrument) ?? chart.tracks[0];
       const classifier = mic ? classifierFor(micPrefs, playingTrack.instrument, playingTrack.lanes) : null;
+      const accents = mic ? accentDetectorFor(micPrefs, playingTrack.instrument) : null;
       const session = new GameSession(engine, {
         chart,
         instrument: current.instrument,
@@ -192,14 +219,14 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
         guide: current.guide,
         hitSounds: useMic ? false : current.hitSounds,
         latencyMs: { teclado: loadLatencyMs("teclado"), tactil: loadLatencyMs("tactil"), microfono: loadLatencyMs("microfono") },
-        inputs: mic ? [new MicInputSource(mic, engine, { classifier })] : [new KeyboardInputSource(keymap, clock), touch],
+        inputs: mic ? [new MicInputSource(mic, engine, { classifier, accents })] : [new KeyboardInputSource(keymap, clock), touch],
         onFinish: handleFinish,
       });
       const next: Running = {
         session,
         touch,
         keyLabels: mic ? keymap.map(() => "") : keymap.map(keyLabel),
-        mic: mic ? { input: mic, classifies: classifier !== null } : null,
+        mic: mic ? { input: mic, classifies: classifier !== null, accents: accents !== null } : null,
       };
       runningRef.current = next;
       setRunning(next);
@@ -248,11 +275,21 @@ export function SongPlayer({ chart, onAttemptComplete }: SongPlayerProps) {
   }
 
   if (phase === "resultados" && result) {
-    return <ResultsView result={result} onReplay={() => void play()} onSettings={() => void exitToSettings()} />;
+    return (
+      <ResultsView
+        result={result}
+        onReplay={() => void play()}
+        onSettings={() => void exitToSettings()}
+        backLink={backLink}
+        extra={resultsExtra}
+      />
+    );
   }
 
   return (
     <SetupPanel
+      backLink={backLink}
+      intro={setupIntro}
       chart={chart}
       settings={settings}
       onSettingsChange={updateSettings}

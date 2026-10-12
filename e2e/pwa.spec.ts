@@ -20,3 +20,17 @@ test("PWA: el service worker se registra", async ({ page }) => {
     })
     .toBe(true);
 });
+
+test("PWA: descarga el repertorio para ensayar sin conexión", async ({ page }) => {
+  test.setTimeout(90_000);
+  await page.goto("/");
+  await page.evaluate(() => navigator.serviceWorker.ready);
+  // El botón necesita que el SW controle la página: tras registrarse, recarga.
+  await page.reload();
+  const box = page.getByTestId("sin-conexion");
+  await expect(box).toHaveAttribute("data-estado", /pendiente|listo/, { timeout: 15_000 });
+  await box.getByRole("button").click();
+  await expect(box).toHaveAttribute("data-estado", "listo", { timeout: 60_000 });
+  const saved = await page.evaluate(() => caches.match("/canciones/samba-de-ensayo").then(Boolean));
+  expect(saved).toBe(true);
+});

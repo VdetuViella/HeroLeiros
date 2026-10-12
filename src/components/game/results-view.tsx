@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ListMusic, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import type { AttemptResult } from "@/lib/attempts/types";
 import { INSTRUMENTS } from "@/lib/chart/instruments";
 import { formatNumber, formatPercent } from "@/lib/format";
+import { accentAdvice } from "@/lib/judge/accent-feedback";
 
 import { Stars } from "./stars";
 
@@ -40,12 +41,16 @@ function timingHint(offsetMs: number | null): string | null {
 }
 
 interface ResultsViewProps {
+  /** Adónde lleva «Otras canciones» (o «Otros ejercicios»). */
+  backLink?: { href: string; label: string };
+  /** Contenido extra antes de los botones (p. ej. tempos desbloqueados). */
+  extra?: ReactNode;
   result: AttemptResult;
   onReplay: () => void;
   onSettings: () => void;
 }
 
-export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) {
+export function ResultsView({ result, onReplay, onSettings, backLink, extra }: ResultsViewProps) {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, []);
@@ -155,6 +160,45 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
         </Card>
       </div>
 
+      {result.accents && (
+        <Card data-testid="resultado-acentos">
+          <CardHeader>
+            <CardTitle>Acentos</CardTitle>
+            <CardDescription>{accentAdvice(result.accents)}</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4 sm:grid-cols-[auto_1fr] sm:items-center">
+            <div>
+              <p className="font-heading text-4xl font-extrabold tabular-nums">{formatPercent(result.accents.accuracy)}</p>
+              <p className="text-sm text-muted-foreground">golpes con la fuerza justa</p>
+            </div>
+            <ul className="divide-y divide-border/60 text-sm">
+              <li className="flex items-center justify-between py-2">
+                <span>
+                  Acentos dados <span className="text-xs text-muted-foreground">de los que pide la partitura</span>
+                </span>
+                <span className="font-semibold tabular-nums text-green-400">
+                  {result.accents.accentsGiven} de {result.accents.accentNotes}
+                </span>
+              </li>
+              <li className="flex items-center justify-between py-2">
+                <span>
+                  Faltó el acento <span className="text-xs text-muted-foreground">nota acentuada tocada normal</span>
+                </span>
+                <span className="font-semibold tabular-nums text-pink-400">{result.accents.missed}</span>
+              </li>
+              <li className="flex items-center justify-between py-2">
+                <span>
+                  Acento de más <span className="text-xs text-muted-foreground">nota normal tocada fuerte</span>
+                </span>
+                <span className="font-semibold tabular-nums text-orange-400">{result.accents.extra}</span>
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {extra}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button size="lg" onClick={onReplay}>
           <RotateCcw /> Repetir
@@ -162,8 +206,8 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
         <Button size="lg" variant="secondary" onClick={onSettings}>
           <SlidersHorizontal /> Cambiar ajustes
         </Button>
-        <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/" />}>
-          <ListMusic /> Otras canciones
+        <Button size="lg" variant="ghost" nativeButton={false} render={<Link href={backLink?.href ?? "/"} />}>
+          <ListMusic /> {backLink && backLink.href !== "/" ? `Volver a ${backLink.label}` : "Otras canciones"}
         </Button>
         <p className="ml-auto text-xs text-muted-foreground">Resultado guardado en este dispositivo.</p>
       </div>

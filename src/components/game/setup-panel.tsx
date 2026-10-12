@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { AlertCircle, Headphones, Keyboard, Loader2, Mic, Play, Timer } from "lucide-react";
 
@@ -19,15 +20,20 @@ import { INSTRUMENTS, STROKES, strokeLabel } from "@/lib/chart/instruments";
 import { getTrack } from "@/lib/chart/query";
 import type { Chart, ChartTrack, InstrumentId } from "@/lib/chart/types";
 import { formatDuration, formatPercent } from "@/lib/format";
-import type { InputMethod, MicPreferences } from "@/lib/mic/settings";
+import type { InputMethod, MicPreferences, MicPreferencesUpdate } from "@/lib/mic/settings";
 import type { GuideMode } from "@/lib/session/game-session";
 import { MAX_RATE, MIN_RATE, resolveRange, type PracticeSettings } from "@/lib/session/practice";
 import { cn } from "@/lib/utils";
 
 import { KeymapEditor } from "./keymap-editor";
+import { ScoreBarPicker } from "./score-bar-picker";
 import { MixerPanel, type MixState } from "./mixer-panel";
 
 interface SetupPanelProps {
+  /** Enlace de vuelta (canciones o Escuela). */
+  backLink?: { href: string; label: string };
+  /** Contenido extra bajo el título (ficha de un ejercicio). */
+  intro?: ReactNode;
   chart: Chart;
   settings: PracticeSettings;
   onSettingsChange: (patch: Partial<PracticeSettings>) => void;
@@ -44,7 +50,7 @@ interface SetupPanelProps {
   inputMethod: InputMethod;
   onInputMethodChange: (method: InputMethod) => void;
   micPrefs: MicPreferences;
-  onMicPrefsChange: (patch: Partial<MicPreferences>) => void;
+  onMicPrefsChange: (update: MicPreferencesUpdate) => void;
 }
 
 const GUIDE_OPTIONS: { value: GuideMode; label: string }[] = [
@@ -72,8 +78,8 @@ export function SetupPanel(props: SetupPanelProps) {
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8 sm:px-6">
       <header className="space-y-2">
-        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground">
-          ← Canciones
+        <Link href={props.backLink?.href ?? "/"} className="text-sm text-muted-foreground hover:text-foreground">
+          ← {props.backLink?.label ?? "Canciones"}
         </Link>
         <h1 className="font-heading text-3xl font-extrabold tracking-tight sm:text-4xl">{chart.title}</h1>
         <p className="text-muted-foreground">
@@ -82,6 +88,8 @@ export function SetupPanel(props: SetupPanelProps) {
         </p>
         {chart.description && <p className="max-w-3xl text-sm text-muted-foreground">{chart.description}</p>}
       </header>
+
+      {props.intro}
 
       <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
         <section aria-labelledby="instrumento" className="space-y-3">
@@ -223,6 +231,14 @@ export function SetupPanel(props: SetupPanelProps) {
                 </Select>
                 {settings.rangeMode === "compases" && (
                   <div className="grid grid-cols-2 gap-2">
+                    <div className="col-span-2">
+                      <ScoreBarPicker
+                        chart={chart}
+                        track={track}
+                        value={{ startBar: settings.startBar, endBar: settings.endBar }}
+                        onChange={(picked) => onSettingsChange({ startBar: picked.startBar, endBar: picked.endBar })}
+                      />
+                    </div>
                     <BarSelect
                       label="Desde (A)"
                       items={barItems}
