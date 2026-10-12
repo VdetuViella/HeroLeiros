@@ -37,7 +37,7 @@ const COLLISION_COST = 0.25;
 /** Una nota que llega hasta 1/24 de negra antes del pulso pertenece a ese pulso. */
 const EARLY_TOLERANCE = 1 / 24;
 
-export type QuantizableNote = Pick<ChartNote, "id" | "beat" | "stroke" | "accent" | "lane">;
+export type QuantizableNote = Pick<ChartNote, "id" | "beat" | "stroke" | "accent" | "lane" | "hand">;
 
 export interface QuantizedNote {
   /** `id` de la nota original del chart. */
@@ -49,6 +49,8 @@ export interface QuantizedNote {
   stroke: StrokeId;
   accent: boolean;
   lane: number;
+  /** Digitación, si la nota la trae. */
+  hand?: ChartNote["hand"];
 }
 
 export interface QuantizedBeat {
@@ -154,6 +156,7 @@ export function quantizeNotes(notes: readonly QuantizableNote[], options: Quanti
         stroke: note.stroke,
         accent: note.accent,
         lane: note.lane,
+        ...(note.hand ? { hand: note.hand } : {}),
       };
       maxOffset = Math.max(maxOffset, Math.abs(placed.offset));
       const existing = beat.slots[slot];

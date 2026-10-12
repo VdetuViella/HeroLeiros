@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ListMusic, RotateCcw, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -41,12 +41,16 @@ function timingHint(offsetMs: number | null): string | null {
 }
 
 interface ResultsViewProps {
+  /** Adónde lleva «Otras canciones» (o «Otros ejercicios»). */
+  backLink?: { href: string; label: string };
+  /** Contenido extra antes de los botones (p. ej. tempos desbloqueados). */
+  extra?: ReactNode;
   result: AttemptResult;
   onReplay: () => void;
   onSettings: () => void;
 }
 
-export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) {
+export function ResultsView({ result, onReplay, onSettings, backLink, extra }: ResultsViewProps) {
   useEffect(() => {
     window.scrollTo({ top: 0 });
   }, []);
@@ -193,6 +197,8 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
         </Card>
       )}
 
+      {extra}
+
       <div className="flex flex-wrap items-center gap-2">
         <Button size="lg" onClick={onReplay}>
           <RotateCcw /> Repetir
@@ -200,8 +206,8 @@ export function ResultsView({ result, onReplay, onSettings }: ResultsViewProps) 
         <Button size="lg" variant="secondary" onClick={onSettings}>
           <SlidersHorizontal /> Cambiar ajustes
         </Button>
-        <Button size="lg" variant="ghost" nativeButton={false} render={<Link href="/" />}>
-          <ListMusic /> Otras canciones
+        <Button size="lg" variant="ghost" nativeButton={false} render={<Link href={backLink?.href ?? "/"} />}>
+          <ListMusic /> {backLink && backLink.href !== "/" ? `Volver a ${backLink.label}` : "Otras canciones"}
         </Button>
         <p className="ml-auto text-xs text-muted-foreground">Resultado guardado en este dispositivo.</p>
       </div>

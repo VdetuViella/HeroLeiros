@@ -12,6 +12,13 @@ Se juega en el navegador (PC y móvil) y se puede instalar como PWA.
 
 ## Qué está hecho
 
+### Escuela
+
+- `/escuela`: 23 ejercicios de caixa (14) y surdo (9) en 7 niveles, más 2 rutinas de calentamiento. Rudimentos de la PAS (sencillos, dobles, paradiddles, redoble de cinco), «8 on a hand», accent-tap, acentos desplazados, levadas de samba y samba-reggae, marcación de primeira y segunda, corte de terceira, contratiempo y breques. Fuentes en [`escuela.md`](escuela.md).
+- Escalones de tempo (3★ a velocidad normal abren el siguiente), niveles que se abren con la mitad del anterior, recomendación de «Siguiente», modo libre.
+- Digitación D/I en el carril y en la partitura. Metrónomo encendido por defecto. Acompañamiento de surdos en los ejercicios de aplicación.
+- Los ejercicios se escriben como patrones de texto (`src/lib/exercises/catalog.ts`) y se convierten en `Chart` sin MIDI (`src/lib/chart/build.ts`).
+
 ### Canciones y MIDI
 
 - Convención de pistas y golpes: [`convencion-midi.md`](convencion-midi.md).

@@ -212,6 +212,14 @@ function drawNote(
   ctx.fillStyle = "rgba(255,255,255,0.35)";
   roundRect(ctx, cx - w / 2 + 6, y - h / 2 + 3, w - 12, h / 3, h / 6);
   ctx.fill();
+  if (note.hand) {
+    // Digitación de los ejercicios: D (derecha) o I (izquierda), dentro de la nota.
+    ctx.fillStyle = result === "fallo" ? "rgba(255,255,255,0.6)" : "rgba(10,10,10,0.85)";
+    ctx.font = `800 ${note.accent ? 13 : 11}px system-ui, sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(note.hand, cx, y + 1);
+  }
   ctx.globalAlpha = 1;
 }
 

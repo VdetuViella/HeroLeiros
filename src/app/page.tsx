@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, FolderOpen, Gauge, Keyboard, Mic, Music, Repeat, Smartphone } from "lucide-react";
+import { ArrowRight, FolderOpen, Gauge, GraduationCap, Keyboard, Mic, Music, Repeat, Smartphone } from "lucide-react";
 
 import { InstrumentChip } from "@/components/instrument-chip";
 import { InstallHint } from "@/components/pwa/install-hint";
@@ -49,6 +49,25 @@ export default async function Home() {
           ))}
         </ul>
       </section>
+
+      <Link
+        href="/escuela"
+        className="group flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border/60 bg-card p-5 transition-colors hover:border-primary/50 focus-visible:ring-2 focus-visible:ring-primary focus-visible:outline-none"
+        data-testid="ir-escuela"
+      >
+        <span className="flex items-start gap-3">
+          <GraduationCap className="mt-0.5 size-6 shrink-0 text-primary" aria-hidden />
+          <span>
+            <span className="block font-heading text-lg font-bold">Escuela de caixa y surdo</span>
+            <span className="block text-sm text-muted-foreground">
+              Rudimentos, acentos y marcación, por niveles. Supera cada tempo para desbloquear el siguiente.
+            </span>
+          </span>
+        </span>
+        <span className="flex items-center gap-1 text-sm font-medium text-primary">
+          Empezar <ArrowRight className="size-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
+        </span>
+      </Link>
 
       <section className="space-y-4" aria-labelledby="canciones">
         <div className="flex items-end justify-between gap-4">

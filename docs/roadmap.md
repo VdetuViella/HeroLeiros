@@ -30,6 +30,9 @@ Estas piezas son las que cierran el producto del plan. Sin ellas se puede **prob
 7. **Redobles en la partitura.**  
    Ya se escriben semicorcheas, tresillos de corchea, seisillos, fusas y 6/8 o 12/8 agrupados por negras con puntillo. Falta un símbolo de redoble (trémolo) y soportar 3/8 y 9/8, que hoy el parser redondea a negras enteras. Solo duele si el repertorio usa eso.
 
+8. **Escuela: más contenido y probarla con el grupo.**  
+   Faltan ejercicios de repinique, tamborim, agogô y chocalho; flams y drags (necesitan juzgar notas de adorno); y que el director pueda añadir sus propios ejercicios sin tocar código. Conviene revisar con alguien del grupo los tempos de cada escalón y el reparto abierto/tapado de los surdos.
+
 ## Limitaciones conocidas (no bloquean el ensayo)
 
 - En móvil, arrastrar en vertical sobre la partitura la desplaza; para elegir compases lo fiable es tocar A y luego B.

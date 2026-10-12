@@ -1,4 +1,5 @@
 import {
+  Annotation,
   Articulation,
   Beam,
   Dot,
@@ -79,6 +80,8 @@ function buildNote(instrument: InstrumentId, token: RhythmToken, overrideDuratio
   const symbol = strokeSymbol(instrument, token.note.stroke);
   const note = noteForSymbol(symbol, duration, token.dots);
   if (token.note.accent) note.addModifier(new Articulation("a>").setPosition(ModifierPosition.BELOW), 0);
+  // Digitación de los ejercicios (D / I) encima de la nota.
+  if (token.note.hand) note.addModifier(new Annotation(token.note.hand), 0);
   return note;
 }
 

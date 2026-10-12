@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Drum, Timer } from "lucide-react";
+import { Drum, GraduationCap, Timer } from "lucide-react";
 
 import { AccountNav } from "@/components/account/account-nav";
 
@@ -16,6 +16,13 @@ export function SiteHeader() {
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/" className="hidden rounded-md px-3 py-1.5 text-muted-foreground sm:block transition-colors hover:bg-muted hover:text-foreground">
             Canciones
+          </Link>
+          <Link
+            href="/escuela"
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <GraduationCap className="size-4" aria-hidden />
+            Escuela
           </Link>
           <Link
             href="/calibracion"

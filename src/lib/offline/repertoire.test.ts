@@ -54,6 +54,9 @@ describe("URLs del repertorio", () => {
     expect(urls).toContain("/canciones/a");
     expect(urls).toContain("/canciones/b");
     expect(urls).toContain("/samples/caixa/aro.wav");
+    expect(urls).toContain("/escuela");
+    expect(urls).toContain("/escuela/caixa-paradiddle");
+    expect(urls).toContain("/escuela/rutina-calentamiento-surdo");
     expect(new Set(urls).size).toBe(urls.length);
   });
 
@@ -134,6 +137,7 @@ describe("RepertoireDownload", () => {
     await store.download();
     const { urls } = fake.posted[0] as { urls: string[] };
     expect(urls).toEqual(repertoireUrls(["a"], null));
+    expect(urls.some((u) => u.startsWith("/samples/") && u !== "/samples/manifest.json")).toBe(false);
   });
 
   it("si el SW no llega a estar listo queda «incompleto» sin mandar nada", async () => {

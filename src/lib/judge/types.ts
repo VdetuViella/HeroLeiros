@@ -20,6 +20,8 @@ export interface ExpectedNote {
   time: number;
   lane: number;
   accent?: boolean;
+  /** Digitación («D» derecha, «I» izquierda), si el chart la trae. Solo se muestra. */
+  hand?: "D" | "I";
   /** Índice de la sección del chart (para el resultado por sección). */
   section: number;
 }

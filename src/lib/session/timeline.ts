@@ -213,6 +213,7 @@ export function expectedNotesForPass(chart: Chart, track: ChartTrack, plan: Sess
       time: beatToTime(plan, note.beat, pass),
       lane: note.lane,
       accent: note.accent,
+      ...(note.hand ? { hand: note.hand } : {}),
       section: Math.max(0, sectionIndexAt(chart.sections, note.beat)),
     });
   }

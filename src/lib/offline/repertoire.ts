@@ -10,6 +10,8 @@
  * poder probarlo.
  */
 
+import { EXERCISES, ROUTINES } from "../exercises/catalog";
+
 /** `public/samples/manifest.json`: id de sonido → archivo relativo a `public/samples/`. */
 export interface SampleManifest {
   samples?: Record<string, string>;
@@ -36,9 +38,14 @@ export function sampleUrls(manifest: SampleManifest | null | undefined): string[
   return [...new Set(files)].map((file) => `/samples/${file.split("/").map(encodeURIComponent).join("/")}`);
 }
 
-/** Todas las URLs que se descargan: la app, cada canción y las grabaciones reales. */
+/** La Escuela y cada ejercicio o rutina (páginas estáticas). */
+export function schoolUrls(): string[] {
+  return ["/escuela", ...[...EXERCISES, ...ROUTINES].map(({ slug }) => `/escuela/${encodeURIComponent(slug)}`)];
+}
+
+/** Todas las URLs que se descargan: la app, cada canción, la Escuela y las grabaciones reales. */
 export function repertoireUrls(slugs: readonly string[], manifest: SampleManifest | null | undefined): string[] {
-  return [...new Set([...OFFLINE_SHELL, ...slugs.map(songUrl), ...sampleUrls(manifest)])];
+  return [...new Set([...OFFLINE_SHELL, ...slugs.map(songUrl), ...schoolUrls(), ...sampleUrls(manifest)])];
 }
 
 export type OfflineStatus =

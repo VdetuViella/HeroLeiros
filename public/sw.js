@@ -9,7 +9,7 @@
  * `{ type: "precache", urls }`; el progreso vuelve como `precache-progress` y
  * `precache-done` (ver `src/lib/offline/`).
  */
-const VERSION = "heroleiros-v2";
+const VERSION = "heroleiros-v3";
 const PRECACHE = [
   "/",
   "/samples/manifest.json",
@@ -65,6 +65,8 @@ function isSongOrShell(pathname) {
     pathname === "/" ||
     pathname.startsWith("/canciones/") ||
     pathname === "/calibracion" ||
+    pathname === "/escuela" ||
+    pathname.startsWith("/escuela/") ||
     pathname === "/manifest.webmanifest" ||
     pathname.startsWith("/icons/")
   );

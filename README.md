@@ -3,16 +3,21 @@
 Juego de ritmo tipo Guitar Hero para ensayar batucada. Cada integrante elige canción e
 instrumento (surdos, caixa, repinique, tamborim, agogô, chocalho), toca su parte con el
 teclado, la pantalla táctil o el micrófono mientras suena el resto del grupo, y recibe una
-puntuación golpe a golpe.
+puntuación golpe a golpe. En la **Escuela**, además, aprende técnica de caixa y surdo con
+ejercicios por niveles que se van desbloqueando.
 
 | Documento | Contenido |
 | --------- | --------- |
 | [Estado](docs/estado.md) | Qué está hecho, cómo arrancar, mapa del código |
 | [Qué queda](docs/roadmap.md) | Prioridad para el grupo, limitaciones, orden sugerido |
 | [Plan original](docs/plan-desarrollo.md) | Decisiones de producto con las que se construyó |
+| [Escuela](docs/escuela.md) | Ejercicios de caixa y surdo, niveles, fuentes y cómo añadir más |
 
 ## Qué incluye
 
+- **Escuela** (`/escuela`): rudimentos de la PAS, calentamientos y marcación de surdo como
+  niveles de juego, con escalones de tempo, estrellas, digitación D/I y rutinas de calentamiento.
+  Ver [`docs/escuela.md`](docs/escuela.md).
 - **Canciones desde MIDI**: el director deja `song.mid` + `meta.json` en `content/songs/<slug>/`.
   Una pista por instrumento, una nota por tipo de golpe. Ver [`docs/convencion-midi.md`](docs/convencion-midi.md).
 - **Acompañamiento generado desde el MIDI** con Tone.js: cambiar la velocidad (50–100 %) solo
